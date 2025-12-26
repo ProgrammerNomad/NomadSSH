@@ -47,8 +47,10 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({ sessions, activeSessionId }
   }
 
   return (
-    <div className="h-full w-full">
-      {sessions.map((session) => (
+    <div className="h-full w-full border-2 border-green-500">
+      {sessions.map((session) => {
+        console.log(`[TerminalArea] Rendering session ${session.id}, active: ${activeSessionId}, visible: ${session.id === activeSessionId}`);
+        return (
         <div
           key={session.id}
           className="h-full w-full"
@@ -60,7 +62,7 @@ const TerminalArea: React.FC<TerminalAreaProps> = ({ sessions, activeSessionId }
             onResize={handleResize}
           />
         </div>
-      ))}
+      )})}
     </div>
   );
 };

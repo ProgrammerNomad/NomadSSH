@@ -98,6 +98,26 @@ No manual copying. No insecure exports.
 
 ---
 
+## Design System
+
+NomadSSH features a modern **Cyber Blue + Zinc Dark** theme optimized for terminal usage and long coding sessions:
+
+### Color Palette
+- **Primary:** Cyan-500 (#06B6D4) - Modern, tech-forward, SSH/terminal aesthetic
+- **Background:** Zinc-950 (#09090B) - Deep, eye-friendly dark mode
+- **Surface:** Zinc-900 (#18181B) - Elevated panels and cards
+- **Text:** Gray-200 (#E5E7EB) - High contrast, easy to read
+
+### Design Philosophy
+- **Terminal-first:** Optimized for developers who spend hours in SSH sessions
+- **High contrast:** WCAG AA compliant for accessibility
+- **Modern tooling:** Inspired by GitHub, Vercel, Railway, Linear
+- **Smooth interactions:** Thoughtful transitions and hover states
+
+See [COLOR_MIGRATION.md](COLOR_MIGRATION.md) for the complete design system guide.
+
+---
+
 ## Architecture Overview
 
 | Component | Technology |

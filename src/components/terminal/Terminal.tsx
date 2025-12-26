@@ -1,124 +1,87 @@
-import React, { useEffect, useRef } from 'react';
-import { Terminal as XTerm } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import { WebLinksAddon } from '@xterm/addon-web-links';
-import '@xterm/xterm/css/xterm.css';
+import React from 'react';
+import { useTerminal } from '@/hooks/useTerminal';
 
 interface TerminalProps {
   sessionId: string;
-  onData?: (data: string) => void;
-  onResize?: (cols: number, rows: number) => void;
+  onError?: (error: string) => void;
+  onClose?: () => void;
 }
 
-const Terminal: React.FC<TerminalProps> = ({ sessionId, onData, onResize }) => {
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const xtermRef = useRef<XTerm | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
+const Terminal: React.FC<TerminalProps> = ({ sessionId, onError, onClose }) => {
+  // Use terminal hook - it returns the containerRef
+  const { terminal, status, error, containerRef } = useTerminal({
+    sessionId,
+    onError,
+    onClose,
+  });
 
-  useEffect(() => {
-    if (!terminalRef.current) return;
+  console.log('[Terminal] Render status:', status);
 
-    // Create xterm instance
-    const xterm = new XTerm({
-      cursorBlink: true,
-      cursorStyle: 'block',
-      fontSize: 14,
-      fontFamily: 'Cascadia Code, Fira Code, Consolas, Monaco, monospace',
-      theme: {
-        background: '#1e1e1e',
-        foreground: '#cccccc',
-        cursor: '#cccccc',
-        cursorAccent: '#1e1e1e',
-        selectionBackground: '#264f78',
-        black: '#000000',
-        red: '#cd3131',
-        green: '#0dbc79',
-        yellow: '#e5e510',
-        blue: '#2472c8',
-        magenta: '#bc3fbc',
-        cyan: '#11a8cd',
-        white: '#e5e5e5',
-        brightBlack: '#666666',
-        brightRed: '#f14c4c',
-        brightGreen: '#23d18b',
-        brightYellow: '#f5f543',
-        brightBlue: '#3b8eea',
-        brightMagenta: '#d670d6',
-        brightCyan: '#29b8db',
-        brightWhite: '#ffffff',
-      },
-      scrollback: 10000,
-      allowProposedApi: true,
-    });
-
-    // Create and load addons
-    const fitAddon = new FitAddon();
-    const webLinksAddon = new WebLinksAddon();
-
-    xterm.loadAddon(fitAddon);
-    xterm.loadAddon(webLinksAddon);
-
-    // Open terminal in DOM
-    xterm.open(terminalRef.current);
-
-    // Fit terminal to container
-    fitAddon.fit();
-
-    // Store refs
-    xtermRef.current = xterm;
-    fitAddonRef.current = fitAddon;
-
-    // Handle data from terminal (user input)
-    xterm.onData((data) => {
-      if (onData) {
-        onData(data);
-      }
-    });
-
-    // Handle resize
-    xterm.onResize(({ cols, rows }) => {
-      if (onResize) {
-        onResize(cols, rows);
-      }
-    });
-
-    // Welcome message
-    xterm.writeln('\x1b[1;34mNomadSSH Terminal\x1b[0m');
-    xterm.writeln('Connecting to remote host...\n');
-
-    // Handle window resize
-    const handleResize = () => {
-      fitAddon.fit();
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      xterm.dispose();
-    };
-  }, [sessionId, onData, onResize]);
-
-  // Method to write data to terminal (from SSH)
-  useEffect(() => {
-    if (xtermRef.current) {
-      // Expose write method for parent component
-      (window as any)[`terminal_${sessionId}`] = {
-        write: (data: string) => xtermRef.current?.write(data),
-        clear: () => xtermRef.current?.clear(),
-        focus: () => xtermRef.current?.focus(),
-      };
-    }
-
-    return () => {
-      delete (window as any)[`terminal_${sessionId}`];
-    };
-  }, [sessionId]);
+  console.log('[Terminal] Container rendering, status:', status, 'sessionId:', sessionId);
 
   return (
-    <div className="h-full w-full bg-[#1e1e1e] p-2">
-      <div ref={terminalRef} className="h-full w-full" />
+    <div className="h-full w-full bg-black relative">
+      {/* Status overlay */}
+      {status === 'connecting' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="text-text-secondary text-sm">Connecting to SSH server...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Error overlay */}
+      {status === 'error' && error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-10">
+          <div className="bg-surface border border-error rounded-lg p-6 max-w-md mx-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-error flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="text-text-primary font-semibold mb-2">Connection Failed</h3>
+                <p className="text-text-secondary text-sm mb-4">{error}</p>
+                <button
+                  onClick={onClose}
+                  className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                >
+                  Close Terminal
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Disconnected overlay - minimal to show content */}
+      {status === 'disconnected' && (
+        <div className="absolute top-4 right-4 z-20">
+          <div className="bg-surface border border-border rounded-lg shadow-lg p-4 flex items-center gap-4 animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2 text-text-secondary">
+              <div className="w-2 h-2 rounded-full bg-text-secondary" />
+              <span className="text-sm font-medium">Connection closed</span>
+            </div>
+            <button
+              onClick={onClose}
+              className="bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 rounded text-sm transition-colors font-medium"
+            >
+              Close Session
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Terminal container */}
+      <div 
+        ref={containerRef} 
+        className="h-full w-full" 
+        style={{ 
+          position: 'relative',
+          backgroundColor: '#000000',
+          zIndex: 1
+        }}
+      />
     </div>
   );
 };

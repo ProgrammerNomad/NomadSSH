@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalContent,
@@ -23,6 +23,16 @@ import { SSHProfile, SSHKey } from '@/types';
 import { PREDEFINED_TAGS, getTagColor, parseTags } from '@/utils/tags';
 import IconPickerModal from './IconPickerModal';
 
+// Default host groups
+const DEFAULT_GROUPS = [
+  'Work',
+  'Personal',
+  'Clients',
+  'Staging',
+  'Production',
+  'Development',
+];
+
 interface ProfileManagerProps {
   open: boolean;
   onClose: () => void;
@@ -33,12 +43,16 @@ interface ProfileManagerProps {
 }
 
 const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, profile, keys = [], groups = [] }) => {
+  // Use provided groups or fallback to defaults
+  const availableGroups = groups.length > 0 ? groups : DEFAULT_GROUPS;
+
   const [formData, setFormData] = useState({
     name: profile?.name || '',
     host: profile?.host || '',
     port: profile?.port || 22,
     username: profile?.username || '',
     authMethod: profile?.authMethod || 'password',
+    password: profile?.password || '',
     keyId: profile?.keyId || '',
     tags: profile?.tags?.join(', ') || '',
     group: profile?.group || '',
@@ -49,6 +63,42 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Update form data when profile prop changes (for editing)
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        name: profile.name || '',
+        host: profile.host || '',
+        port: profile.port || 22,
+        username: profile.username || '',
+        authMethod: profile.authMethod || 'password',
+        password: profile.password || '',
+        keyId: profile.keyId || '',
+        tags: profile.tags?.join(', ') || '',
+        group: profile.group || '',
+        icon: profile.icon || '',
+      });
+    } else {
+      // Reset form for new profile
+      setFormData({
+        name: '',
+        host: '',
+        port: 22,
+        username: '',
+        authMethod: 'password',
+        password: '',
+        keyId: '',
+        tags: '',
+        group: '',
+        icon: '',
+      });
+    }
+    setErrors({});
+    setTestResult(null);
+  }, [profile, open]);
 
   const handleChange = (field: string, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -86,6 +136,7 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
       port: formData.port,
       username: formData.username.trim(),
       authMethod: formData.authMethod as 'password' | 'key',
+      password: formData.password || undefined,
       keyId: formData.keyId || undefined,
       group: formData.group || undefined,
       icon: formData.icon || undefined,
@@ -97,24 +148,66 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
     onClose();
   };
 
-  const handleTestConnection = () => {
+  const handleTestConnection = async () => {
     if (!validate()) return;
-    // TODO: Implement test connection
-    console.log('Testing connection...', formData);
+    
+    setTestingConnection(true);
+    setTestResult(null);
+
+    try {
+      // Create temporary profile for testing
+      const testProfile: SSHProfile = {
+        id: 'test-connection',
+        name: formData.name.trim(),
+        host: formData.host.trim(),
+        port: formData.port,
+        username: formData.username.trim(),
+        authMethod: formData.authMethod as 'password' | 'key',
+        password: formData.password,
+        keyId: formData.keyId || undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Attempt SSH connection
+      const result = await window.nomad.ssh.connect(testProfile, keys);
+      
+      if (result.success && result.sessionId) {
+        setTestResult({ success: true, message: 'Connection successful!' });
+        // Disconnect test session after 2 seconds
+        setTimeout(() => {
+          if (result.sessionId) {
+            window.nomad.ssh.disconnect(result.sessionId);
+          }
+        }, 2000);
+      } else {
+        setTestResult({ 
+          success: false, 
+          message: result.error || 'Connection failed' 
+        });
+      }
+    } catch (error) {
+      setTestResult({ 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    } finally {
+      setTestingConnection(false);
+    }
   };
 
   return (
     <Modal open={open} onOpenChange={onClose}>
-      <ModalContent className="max-w-2xl">
+      <ModalContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <ModalHeader>
           <ModalTitle>{profile ? 'Edit Profile' : 'New SSH Profile'}</ModalTitle>
           <ModalDescription>
-            Configure SSH connection settings. All fields marked with * are required.
+            Configure SSH connection settings. Fields marked with * are required.
           </ModalDescription>
         </ModalHeader>
 
-        <div className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-3 gap-3">
             {/* Profile Name */}
             <FormField className="col-span-2">
               <FormLabel htmlFor="name" required>
@@ -172,7 +265,7 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ungrouped">Ungrouped</SelectItem>
-                  {groups.map((group) => (
+                  {availableGroups.map((group) => (
                     <SelectItem key={group} value={group}>
                       {group}
                     </SelectItem>
@@ -216,10 +309,8 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
             </FormField>
 
             {/* Username */}
-            <FormField>
-              <FormLabel htmlFor="username" required>
-                Username
-              </FormLabel>
+            <FormField className="col-span-2">
+              <FormLabel htmlFor="username" required>Username</FormLabel>
               <Input
                 id="username"
                 value={formData.username}
@@ -231,8 +322,8 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
             </FormField>
 
             {/* Auth Method */}
-            <FormField>
-              <FormLabel htmlFor="authMethod">Authentication Method</FormLabel>
+            <FormField className="col-span-1">
+              <FormLabel htmlFor="authMethod">Auth</FormLabel>
               <Select
                 value={formData.authMethod}
                 onValueChange={(value) => handleChange('authMethod', value)}
@@ -249,7 +340,7 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
 
             {/* SSH Key Selector (if auth method is key) */}
             {formData.authMethod === 'key' && (
-              <FormField className="col-span-2">
+              <FormField className="col-span-3">
                 <FormLabel htmlFor="keyId">SSH Key</FormLabel>
                 <Select value={formData.keyId} onValueChange={(value) => handleChange('keyId', value)}>
                   <SelectTrigger id="keyId">
@@ -292,18 +383,27 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
                     )}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-text-secondary mt-1">
-                  {formData.keyId === 'auto' 
-                    ? 'Will try all available keys until one succeeds'
-                    : 'No keys found? Add them in SSH Key Manager'
-                  }
-                </p>
+              </FormField>
+            )}
+
+            {/* Password Field (if auth method is password) */}
+            {formData.authMethod === 'password' && (
+              <FormField className="col-span-3">
+                <FormLabel htmlFor="password">Password</FormLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  placeholder="Enter SSH password"
+                  autoComplete="new-password"
+                />
               </FormField>
             )}
 
             {/* Tags */}
-            <FormField className="col-span-2">
-              <FormLabel htmlFor="tags">Tags (optional)</FormLabel>
+            <FormField className="col-span-3">
+              <FormLabel htmlFor="tags">Tags</FormLabel>
               <div className="relative">
                 <Input
                   id="tags"
@@ -371,11 +471,20 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
         </div>
 
         <ModalFooter>
+          {testResult && (
+            <div className={`text-sm flex-1 ${testResult.success ? 'text-emerald-500' : 'text-red-500'}`}>
+              {testResult.success ? '✓' : '✗'} {testResult.message}
+            </div>
+          )}
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="secondary" onClick={handleTestConnection}>
-            Test Connection
+          <Button 
+            variant="secondary" 
+            onClick={handleTestConnection}
+            disabled={testingConnection}
+          >
+            {testingConnection ? 'Testing...' : 'Test Connection'}
           </Button>
           <Button variant="primary" onClick={handleSave}>
             {profile ? 'Save Changes' : 'Create Profile'}

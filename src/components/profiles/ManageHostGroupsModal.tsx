@@ -10,6 +10,16 @@ import {
   FormLabel,
 } from '@/components/ui';
 
+// Default host groups
+const DEFAULT_GROUPS = [
+  'Work',
+  'Personal',
+  'Clients',
+  'Staging',
+  'Production',
+  'Development',
+];
+
 interface ManageHostGroupsModalProps {
   open: boolean;
   onClose: () => void;
@@ -27,13 +37,15 @@ const ManageHostGroupsModal: React.FC<ManageHostGroupsModalProps> = ({
   onRenameGroup,
   onDeleteGroup,
 }) => {
+  // Use provided groups or fallback to defaults
+  const availableGroups = groups.length > 0 ? groups : DEFAULT_GROUPS;
   const [newGroupName, setNewGroupName] = useState('');
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
   const handleCreate = () => {
     if (!newGroupName.trim()) return;
-    if (groups.includes(newGroupName.trim())) {
+    if (availableGroups.includes(newGroupName.trim())) {
       alert('Group already exists');
       return;
     }
@@ -51,7 +63,7 @@ const ManageHostGroupsModal: React.FC<ManageHostGroupsModalProps> = ({
       setEditingGroup(null);
       return;
     }
-    if (groups.includes(editName.trim())) {
+    if (availableGroups.includes(editName.trim())) {
       alert('Group already exists');
       return;
     }
@@ -94,10 +106,10 @@ const ManageHostGroupsModal: React.FC<ManageHostGroupsModalProps> = ({
           <div>
             <FormLabel>Existing Groups</FormLabel>
             <div className="mt-2 space-y-2">
-              {groups.length === 0 ? (
+              {availableGroups.length === 0 ? (
                 <p className="text-sm text-text-secondary">No groups yet. Create one above.</p>
               ) : (
-                groups.map((group) => (
+                availableGroups.map((group) => (
                   <div
                     key={group}
                     className="flex items-center gap-2 p-2 bg-surface border border-border rounded"

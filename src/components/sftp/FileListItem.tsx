@@ -42,7 +42,7 @@ const FileListItem: React.FC<FileListItemProps> = ({
   const getFileIcon = () => {
     if (file.type === 'directory') {
       return (
-        <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-4 h-4 text-primary-light" fill="currentColor" viewBox="0 0 20 20">
           <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
         </svg>
       );
@@ -52,16 +52,16 @@ const FileListItem: React.FC<FileListItemProps> = ({
     const ext = file.name.split('.').pop()?.toLowerCase();
     const colorMap: Record<string, string> = {
       js: 'text-yellow-400',
-      ts: 'text-blue-400',
-      tsx: 'text-blue-400',
+      ts: 'text-primary',
+      tsx: 'text-primary',
       jsx: 'text-yellow-400',
       json: 'text-yellow-300',
       html: 'text-orange-400',
       css: 'text-purple-400',
-      py: 'text-blue-300',
-      sh: 'text-green-400',
-      md: 'text-gray-400',
-      txt: 'text-gray-400',
+      py: 'text-primary-light',
+      sh: 'text-emerald-400',
+      md: 'text-text-secondary',
+      txt: 'text-text-secondary',
       zip: 'text-red-400',
       tar: 'text-red-400',
       gz: 'text-red-400',

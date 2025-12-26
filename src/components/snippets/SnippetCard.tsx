@@ -19,12 +19,12 @@ const SnippetCard: React.FC<SnippetCardProps> = ({
 }) => {
   const getCategoryColor = (category: string) => {
     const colors = {
-      System: 'bg-blue-500/20 text-blue-400',
-      Network: 'bg-green-500/20 text-green-400',
-      Docker: 'bg-purple-500/20 text-purple-400',
-      Git: 'bg-orange-500/20 text-orange-400',
-      Database: 'bg-red-500/20 text-red-400',
-      Custom: 'bg-gray-500/20 text-gray-400',
+      System: 'bg-primary-subtle text-primary-light border border-primary/30',
+      Network: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30',
+      Docker: 'bg-purple-500/10 text-purple-400 border border-purple-500/30',
+      Git: 'bg-orange-500/10 text-orange-400 border border-orange-500/30',
+      Database: 'bg-red-500/10 text-red-400 border border-red-500/30',
+      Custom: 'bg-zinc-800 text-text-secondary border border-border',
     };
     return colors[category as keyof typeof colors] || colors.Custom;
   };

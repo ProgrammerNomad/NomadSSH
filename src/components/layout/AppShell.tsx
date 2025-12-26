@@ -51,6 +51,7 @@ const AppShell: React.FC<AppShellProps> = ({
       {/* Top Bar - Fixed */}
       <TopBar
         sessions={sessions}
+        profiles={profiles}
         activeSessionId={activeSessionId}
         onDisconnectSession={onDisconnectSession}
         onToggleRightPanel={() => setRightPanelVisible(!rightPanelVisible)}

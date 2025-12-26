@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, StatusIndicator } from '@/components/ui';
-import { Session } from '@/types';
+import { Session, SSHProfile } from '@/types';
 import SessionTabs from './SessionTabs';
 
 interface TopBarProps {
   sessions: Session[];
+  profiles: SSHProfile[];
   activeSessionId: string | null;
   onDisconnectSession: (sessionId: string) => void;
   onToggleRightPanel: () => void;
@@ -22,6 +23,7 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ 
   sessions, 
+  profiles,
   activeSessionId, 
   onDisconnectSession, 
   onToggleRightPanel, 
@@ -73,7 +75,7 @@ const TopBar: React.FC<TopBarProps> = ({
       <div className="flex-1 flex items-center gap-2 px-4 overflow-x-auto">
         <SessionTabs
           sessions={sessions}
-          profiles={[]}
+          profiles={profiles}
           activeSessionId={activeSessionId}
           onSelectSession={() => {}}
           onCloseSession={onDisconnectSession}

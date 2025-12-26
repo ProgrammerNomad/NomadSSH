@@ -5,6 +5,7 @@ export interface SSHProfile {
   port: number;
   username: string;
   authMethod: 'password' | 'key';
+  password?: string; // For password auth (should be encrypted)
   keyId?: string;
   tags?: string[];
   group?: string; // Optional visual group for organization
@@ -21,6 +22,7 @@ export interface SSHKey {
   type: 'rsa' | 'ed25519' | 'ecdsa';
   fingerprint: string;
   path: string;
+  passphrase?: string; // Optional passphrase (should be encrypted)
   group?: string; // Optional group: Workstation, Office, Personal, Client, Temporary
   createdAt: string;
 }
