@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppShell } from './components/layout';
 import { ProfileManager } from './components/profiles';
+import ManageHostGroupsModal from './components/profiles/ManageHostGroupsModal';
 import { Dashboard } from './components/dashboard';
 import { MasterPasswordModal } from './components/auth';
 import { AboutPanel } from './components/about';
@@ -12,19 +13,23 @@ import { TerminalArea } from './components/terminal';
 import { SnippetsManager } from './components/snippets';
 import { SFTPManager } from './components/sftp';
 import SSHKeyManager from './components/keys';
-import { SSHProfile, SSHKey, Tunnel, Session, Snippet } from './types';
+import { SSHProfile, SSHKey, Tunnel, Session, Snippet, CommandHistory } from './types';
+import CommandHistoryManager from './components/history/CommandHistoryManager';
 
 function App() {
   const [profiles, setProfiles] = useState<SSHProfile[]>([]);
   const [keys, setKeys] = useState<SSHKey[]>([]);
   const [tunnels, setTunnels] = useState<Tunnel[]>([]);
   const [snippets, setSnippets] = useState<Snippet[]>([]);
+  const [commandHistory, setCommandHistory] = useState<CommandHistory[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [hostGroups, setHostGroups] = useState<string[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [showProfileManager, setShowProfileManager] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showManageGroups, setShowManageGroups] = useState(false);
   const [editingProfile, setEditingProfile] = useState<SSHProfile | undefined>(undefined);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'terminal' | 'keys' | 'settings' | 'sync' | 'tunnels' | 'about' | 'snippets' | 'sftp'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'terminal' | 'keys' | 'settings' | 'sync' | 'tunnels' | 'about' | 'snippets' | 'sftp' | 'history'>('dashboard');
   const [isLocked, setIsLocked] = useState(true);
   const [hasPassword, setHasPassword] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
@@ -219,6 +224,50 @@ function App() {
     );
   };
 
+  const handleAddCommandHistory = (commandData: Omit<CommandHistory, 'id'>) => {
+    const newCommand: CommandHistory = {
+      ...commandData,
+      id: Date.now().toString(),
+    };
+    setCommandHistory([newCommand, ...commandHistory]);
+  };
+
+  const handleRerunCommand = (command: string) => {
+    // TODO: Execute command in active terminal
+    console.log('Re-running command:', command);
+  };
+
+  const handleExportHistory = () => {
+    const json = JSON.stringify(commandHistory, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `command-history-${new Date().toISOString()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCreateHostGroup = (groupName: string) => {
+    setHostGroups([...hostGroups, groupName]);
+  };
+
+  const handleRenameHostGroup = (oldName: string, newName: string) => {
+    setHostGroups(hostGroups.map((g) => (g === oldName ? newName : g)));
+    // Update profiles in this group
+    setProfiles(
+      profiles.map((p) => (p.group === oldName ? { ...p, group: newName } : p))
+    );
+  };
+
+  const handleDeleteHostGroup = (groupName: string) => {
+    setHostGroups(hostGroups.filter((g) => g !== groupName));
+    // Move profiles to ungrouped
+    setProfiles(
+      profiles.map((p) => (p.group === groupName ? { ...p, group: undefined } : p))
+    );
+  };
+
   const handleConnectProfile = (profileId: string) => {
     // TODO: Implement actual SSH connection via Electron IPC
     const profile = profiles.find((p) => p.id === profileId);
@@ -283,6 +332,7 @@ function App() {
             onShowCommandPalette={() => setShowCommandPalette(true)}
             onShowSnippets={() => setCurrentView('snippets')}
             onShowSFTP={() => setCurrentView('sftp')}
+            onShowHistory={() => setCurrentView('history')}
           >
             {currentView === 'dashboard' ? (
               <Dashboard
@@ -298,6 +348,8 @@ function App() {
                 onShowKeys={() => setCurrentView('keys')}
                 onShowTunnels={() => setCurrentView('tunnels')}
                 onShowSync={() => setCurrentView('sync')}
+                hostGroups={hostGroups}
+                onManageGroups={() => setShowManageGroups(true)}
               />
             ) : currentView === 'terminal' ? (
               <TerminalArea sessions={sessions} activeSessionId={activeSessionId} />
@@ -340,6 +392,13 @@ function App() {
               />
             ) : currentView === 'sftp' ? (
               <SFTPManager onClose={() => setCurrentView('dashboard')} />
+            ) : currentView === 'history' ? (
+              <CommandHistoryManager
+                history={commandHistory}
+                profiles={profiles}
+                onRerun={handleRerunCommand}
+                onExport={handleExportHistory}
+              />
             ) : null}
           </AppShell>
 
@@ -349,6 +408,16 @@ function App() {
             onSave={handleSaveProfile}
             profile={editingProfile}
             keys={keys}
+            groups={hostGroups}
+          />
+
+          <ManageHostGroupsModal
+            open={showManageGroups}
+            onClose={() => setShowManageGroups(false)}
+            groups={hostGroups}
+            onCreateGroup={handleCreateHostGroup}
+            onRenameGroup={handleRenameHostGroup}
+            onDeleteGroup={handleDeleteHostGroup}
           />
 
           <CommandPalette
@@ -373,6 +442,7 @@ function App() {
             onShowTunnels={() => setCurrentView('tunnels')}
             onShowSFTP={() => setCurrentView('sftp')}
             onShowSnippets={() => setCurrentView('snippets')}
+            onShowHistory={() => setCurrentView('history')}
             onLock={() => setIsLocked(true)}
             onChangeTheme={handleChangeTheme}
           />

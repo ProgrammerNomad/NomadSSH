@@ -7,6 +7,7 @@ export interface SSHProfile {
   authMethod: 'password' | 'key';
   keyId?: string;
   tags?: string[];
+  group?: string; // Optional visual group for organization
   isPinned?: boolean;
   lastConnected?: string;
   icon?: string; // Emoji or color code
@@ -52,6 +53,17 @@ export interface Snippet {
   lastUsed?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CommandHistory {
+  id: string;
+  command: string;
+  timestamp: string;
+  profileId: string;
+  profileName: string;
+  exitCode?: number;
+  duration?: number; // milliseconds
+  sessionId: string;
 }
 
 export * from './sftp';

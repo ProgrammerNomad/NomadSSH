@@ -57,11 +57,18 @@ const HostCard: React.FC<HostCardProps> = ({
           e.stopPropagation();
           onTogglePin(profile.id);
         }}
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-text-secondary hover:text-accent"
+        title={profile.isPinned ? 'Unpin' : 'Pin'}
       >
-        <span className="text-lg" title={profile.isPinned ? 'Unpin' : 'Pin'}>
-          {profile.isPinned ? '📌' : '📍'}
-        </span>
+        {profile.isPinned ? (
+          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+            <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6l1 1 1-1v-6h5v-2z" />
+          </svg>
+        ) : (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5v6l1 1 1-1v-6h5v-2z" />
+          </svg>
+        )}
       </button>
 
       {/* Host Icon/Avatar */}

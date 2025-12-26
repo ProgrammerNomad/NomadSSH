@@ -21,6 +21,7 @@ interface AppShellProps {
   onShowCommandPalette: () => void;
   onShowSnippets: () => void;
   onShowSFTP: () => void;
+  onShowHistory: () => void;
 }
 
 const AppShell: React.FC<AppShellProps> = ({ 
@@ -39,7 +40,8 @@ const AppShell: React.FC<AppShellProps> = ({
   onShowAbout,
   onShowCommandPalette,
   onShowSnippets,
-  onShowSFTP
+  onShowSFTP,
+  onShowHistory
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanelVisible, setRightPanelVisible] = useState(false);
@@ -61,6 +63,7 @@ const AppShell: React.FC<AppShellProps> = ({
         onShowCommandPalette={onShowCommandPalette}
         onShowSnippets={onShowSnippets}
         onShowSFTP={onShowSFTP}
+        onShowHistory={onShowHistory}
       />
 
       {/* Main Content Area */}

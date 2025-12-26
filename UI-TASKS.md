@@ -198,29 +198,35 @@ Profile: "Personal Blog"
 
 ### Medium Priority - Host Groups (Visual Organization)
 
-#### ⬜ Host Groups (Optional, Later Phase)
-After key groups and profile tags are solid, add visual host groups:
-- Group profiles into folders (like Termius screenshot)
-- Example: "Admins" (23 hosts), "Production" (12 hosts)
-- This is purely organizational UI, not security
-- Drag-and-drop profiles between groups
-- Group cards with icon and host count
+#### ✅ Host Groups (Optional, Later Phase) - COMPLETED
+Visual organization for profiles:
+- ✅ **Add group field to SSHProfile** - Optional string field
+- ✅ **Manage Groups Modal** - Create, rename, delete host groups
+- ✅ **Group Selector in ProfileManager** - Dropdown to assign profile to group
+- ✅ **Grouped Display in Dashboard** - Profiles organized by group with folder icons
+- ✅ **Ungrouped Section** - Profiles without a group shown separately
+- ✅ **Move Profiles Between Groups** - Via profile edit modal
+- ✅ **Delete Group Behavior** - Profiles moved to ungrouped when group deleted
+- ✅ **Flat Structure** - No nested groups, simple one-level organization
+- ⬜ **Drag-and-drop** (future enhancement)
 
-**Why Later:** Keys and tags solve 80% of organization needs. Host groups are polish.
-
-#### ⬜ Visual Host Cards
+#### ✅ Visual Host Cards
 Replace simple sidebar list with rich cards:
-- **Circular Icon** - Custom color/emoji per host (like Termius)
-- **Host Name Prominently** - Bold, easy to scan
-- **Tags as Chips** - Visual badges (ssh, admin, personal, prod, dev, cash, db)
-- **Quick Actions on Hover** - Connect, Edit, Duplicate, Delete
-- **Connection Status** - Prominent colored dot
-- **Last Connected** - Show relative time
+- ✅ **Circular Icon** - Custom color/emoji per host (like Termius)
+- ✅ **Icon Picker Modal** - Emoji and color selection (64 presets + custom emoji)
+- ✅ **ProfileManager Integration** - Add icon button and field
+- ✅ **HostCard Display** - Render emoji or colored circle with initials
+- ✅ **Host Name Prominently** - Bold, easy to scan
+- ✅ **Tags as Chips** - Visual badges (ssh, admin, personal, prod, dev, cash, db)
+- ✅ **Quick Actions** - Connect, Edit buttons
+- ✅ **Connection Status** - Prominent colored indicator
+- ✅ **Last Connected** - Show relative time
 
 **Implementation:**
-- Create `HostCard.tsx` component
-- Update Sidebar to use card layout instead of plain list
-- Add icon picker modal for profile customization
+- ✅ Create `IconPickerModal.tsx` component (emoji + color picker)
+- ✅ Update ProfileManager with icon field and picker button
+- ✅ HostCard already displays icon/color (emoji or circle with initials)
+- ✅ Replace pin emoji with SVG icon
 
 #### ⬜ Host Details Panel
 Right-side panel when host selected (not modal):
@@ -310,15 +316,28 @@ Full-screen SFTP workspace:
 
 ### Low Priority - History & Search
 
-#### ⬜ Command History
+#### ✅ Command History
 Searchable log of all executed commands:
-- **Full Command Text** - What was executed
-- **Timestamp** - When it ran
-- **Session/Profile** - Which host
-- **Exit Code** - Success/failure
-- **Re-run Button** - Execute again in active terminal
-- **Filter UI** - By profile, date range, success/failure
-- **Export** - Save history to file (CSV/JSON)
+- ✅ **Full Command Text** - What was executed
+- ✅ **Timestamp** - When it ran (relative time display)
+- ✅ **Session/Profile** - Which host (profile name shown)
+- ✅ **Exit Code** - Success/failure status badges
+- ✅ **Re-run Button** - Execute again in active terminal
+- ✅ **Filter UI** - By profile, date range, success/failure status
+- ✅ **Sort Options** - By time, profile, duration
+- ✅ **Search Bar** - Filter by command text or profile name
+- ✅ **Export** - Save history to JSON file
+- ✅ **Empty State** - Helpful message when no history
+- ✅ **Duration Display** - Execution time for each command
+
+**Implementation:**
+- ✅ Create `CommandHistory` interface in types
+- ✅ Create `CommandHistoryManager.tsx` component
+- ✅ Add history state to App.tsx
+- ✅ Add to TopBar menu (clock icon)
+- ✅ Add to Command Palette ("Open Command History")
+- ⬜ Integrate logging in Terminal component (capture commands)
+- ⬜ Persist history to local storage
 
 **Storage:** SQLite or JSON file in encrypted local storage
 
@@ -450,13 +469,13 @@ Open PowerShell/Bash on local machine:
    - ⬜ Drag-and-drop transfers (remaining)
 
 ### Phase 3 - Visual Polish & Power Features
-- ⬜ Host Groups (visual folders for profiles)
+- ✅ Host Groups (visual folders for profiles)
 - ⬜ Visual Host Cards with custom icons
 - ⬜ Command History & Search
 - ⬜ Connection History logs
 - ⬜ Local Terminal integration
 - ⬜ Split Terminal views
-- ⬜ Keyboard shortcuts & command palette
+- ⬜ Keyboard shortcuts enhancements
 - ⬜ Toast notifications
 
 ### Phase 4 - Advanced & Enterprise

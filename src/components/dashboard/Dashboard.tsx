@@ -13,6 +13,8 @@ interface DashboardProps {
   onShowKeys: () => void;
   onShowTunnels: () => void;
   onShowSync: () => void;
+  hostGroups?: string[];
+  onManageGroups?: () => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -25,6 +27,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   onShowKeys,
   onShowTunnels,
   onShowSync,
+  hostGroups = [],
+  onManageGroups,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -35,7 +39,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   );
 
   // Filter and sort profiles
-  const { pinnedProfiles, recentProfiles, otherProfiles } = useMemo(() => {
+  const { pinnedProfiles, recentProfiles, groupedProfiles, ungroupedProfiles } = useMemo(() => {
     const filtered = profiles.filter(
       (p) =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -52,9 +56,25 @@ const Dashboard: React.FC<DashboardProps> = ({
           new Date(b.lastConnected!).getTime() - new Date(a.lastConnected!).getTime()
       )
       .slice(0, 6);
-    const other = filtered.filter((p) => !p.isPinned && !p.lastConnected);
+    
+    // Group by host group
+    const grouped = filtered
+      .filter((p) => !p.isPinned && p.group)
+      .reduce((acc, profile) => {
+        const group = profile.group!;
+        if (!acc[group]) acc[group] = [];
+        acc[group].push(profile);
+        return acc;
+      }, {} as Record<string, SSHProfile[]>);
+    
+    const ungrouped = filtered.filter((p) => !p.isPinned && !p.group && !p.lastConnected);
 
-    return { pinnedProfiles: pinned, recentProfiles: recent, otherProfiles: other };
+    return { 
+      pinnedProfiles: pinned, 
+      recentProfiles: recent, 
+      groupedProfiles: grouped,
+      ungroupedProfiles: ungrouped
+    };
   }, [profiles, searchQuery]);
 
   return (
@@ -181,18 +201,55 @@ const Dashboard: React.FC<DashboardProps> = ({
               )}
 
               {/* All Other Profiles */}
-              {otherProfiles.length > 0 && (
+              {Object.keys(groupedProfiles).length > 0 && (
+                <>
+                  {Object.keys(groupedProfiles).sort().map((groupName) => (
+                    <div key={groupName}>
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                          </svg>
+                          {groupName}
+                        </h2>
+                        <span className="text-sm text-text-secondary">
+                          {groupedProfiles[groupName].length} {groupedProfiles[groupName].length === 1 ? 'host' : 'hosts'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {groupedProfiles[groupName].map((profile) => (
+                          <HostCard
+                            key={profile.id}
+                            profile={profile}
+                            isConnected={connectedProfileIds.has(profile.id)}
+                            onConnect={onConnect}
+                            onEdit={onEditProfile}
+                            onTogglePin={onTogglePin}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {ungroupedProfiles.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
-                      📁 All Profiles
+                      📁 Other Profiles
+                      {onManageGroups && (
+                        <Button size="sm" variant="ghost" onClick={onManageGroups} className="ml-2 text-xs">
+                          Manage Groups
+                        </Button>
+                      )}
                     </h2>
                     <span className="text-sm text-text-secondary">
-                      {otherProfiles.length} {otherProfiles.length === 1 ? 'host' : 'hosts'}
+                      {ungroupedProfiles.length} {ungroupedProfiles.length === 1 ? 'host' : 'hosts'}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {otherProfiles.map((profile) => (
+                    {ungroupedProfiles.map((profile) => (
                       <HostCard
                         key={profile.id}
                         profile={profile}
@@ -210,7 +267,8 @@ const Dashboard: React.FC<DashboardProps> = ({
               {searchQuery &&
                 pinnedProfiles.length === 0 &&
                 recentProfiles.length === 0 &&
-                otherProfiles.length === 0 && (
+                Object.keys(groupedProfiles).length === 0 &&
+                ungroupedProfiles.length === 0 && (
                   <div className="flex flex-col items-center justify-center h-64 text-center">
                     <div className="text-6xl mb-4">🔍</div>
                     <h2 className="text-xl font-semibold text-text-primary mb-2">

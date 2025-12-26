@@ -21,6 +21,7 @@ import {
 } from '@/components/ui';
 import { SSHProfile, SSHKey } from '@/types';
 import { PREDEFINED_TAGS, getTagColor, parseTags } from '@/utils/tags';
+import IconPickerModal from './IconPickerModal';
 
 interface ProfileManagerProps {
   open: boolean;
@@ -28,9 +29,10 @@ interface ProfileManagerProps {
   onSave: (profile: Omit<SSHProfile, 'id' | 'createdAt' | 'updatedAt'>) => void;
   profile?: SSHProfile;
   keys?: SSHKey[];
+  groups?: string[];
 }
 
-const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, profile, keys = [] }) => {
+const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, profile, keys = [], groups = [] }) => {
   const [formData, setFormData] = useState({
     name: profile?.name || '',
     host: profile?.host || '',
@@ -39,10 +41,13 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
     authMethod: profile?.authMethod || 'password',
     keyId: profile?.keyId || '',
     tags: profile?.tags?.join(', ') || '',
+    group: profile?.group || '',
+    icon: profile?.icon || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const [tagInput, setTagInput] = useState('');
 
   const handleChange = (field: string, value: string | number) => {
@@ -82,6 +87,8 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
       username: formData.username.trim(),
       authMethod: formData.authMethod as 'password' | 'key',
       keyId: formData.keyId || undefined,
+      group: formData.group || undefined,
+      icon: formData.icon || undefined,
       tags: formData.tags
         ? formData.tags.split(',').map((t) => t.trim()).filter(Boolean)
         : undefined,
@@ -121,6 +128,60 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
                 error={!!errors.name}
               />
               {errors.name && <FormError>{errors.name}</FormError>}
+            </FormField>
+
+            {/* Icon */}
+            <FormField>
+              <FormLabel htmlFor="icon">Icon</FormLabel>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowIconPicker(true)}
+                  className="w-16 h-16 flex items-center justify-center border-2 border-border rounded-lg hover:border-accent transition-colors text-3xl"
+                  style={{
+                    backgroundColor: formData.icon?.startsWith('#') ? formData.icon : 'transparent'
+                  }}
+                >
+                  {formData.icon && !formData.icon.startsWith('#') ? formData.icon : ''}
+                </button>
+                <div className="flex-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setShowIconPicker(true)}
+                    className="w-full"
+                  >
+                    {formData.icon ? 'Change Icon' : 'Choose Icon'}
+                  </Button>
+                  <p className="text-xs text-text-secondary mt-1">
+                    Visual identifier for this profile
+                  </p>
+                </div>
+              </div>
+            </FormField>
+
+            {/* Group */}
+            <FormField className="col-span-2">
+              <FormLabel htmlFor="group">Group (optional)</FormLabel>
+              <Select 
+                value={formData.group || 'ungrouped'} 
+                onValueChange={(value) => handleChange('group', value === 'ungrouped' ? '' : value)}
+              >
+                <SelectTrigger id="group">
+                  <SelectValue placeholder="Ungrouped" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ungrouped">Ungrouped</SelectItem>
+                  {groups.map((group) => (
+                    <SelectItem key={group} value={group}>
+                      {group}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-text-secondary mt-1">
+                Organize profiles into visual folders
+              </p>
             </FormField>
 
             {/* Host */}
@@ -196,36 +257,46 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
                   </SelectTrigger>
                   <SelectContent>
                     {keys.length === 0 ? (
-                      <SelectItem value="" disabled>
+                      <SelectItem value="no-keys" disabled>
                         No keys available
                       </SelectItem>
                     ) : (
-                      (() => {
-                        // Group keys by group field
-                        const grouped = keys.reduce((acc, key) => {
-                          const group = key.group || 'Personal';
-                          if (!acc[group]) acc[group] = [];
-                          acc[group].push(key);
-                          return acc;
-                        }, {} as Record<string, SSHKey[]>);
+                      <>
+                        {/* Auto option - try all keys */}
+                        <SelectItem value="auto">
+                          Auto (try all keys)
+                        </SelectItem>
+                        
+                        {(() => {
+                          // Group keys by group field
+                          const grouped = keys.reduce((acc, key) => {
+                            const group = key.group || 'Personal';
+                            if (!acc[group]) acc[group] = [];
+                            acc[group].push(key);
+                            return acc;
+                          }, {} as Record<string, SSHKey[]>);
 
-                        // Render grouped items
-                        return Object.keys(grouped).sort().map((groupName) => (
-                          <SelectGroup key={groupName}>
-                            <SelectLabel>{groupName}</SelectLabel>
-                            {grouped[groupName].map((key) => (
-                              <SelectItem key={key.id} value={key.id}>
-                                {key.name} ({key.type.toUpperCase()})
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        ));
-                      })()
+                          // Render grouped items
+                          return Object.keys(grouped).sort().map((groupName) => (
+                            <SelectGroup key={groupName}>
+                              <SelectLabel>{groupName}</SelectLabel>
+                              {grouped[groupName].map((key) => (
+                                <SelectItem key={key.id} value={key.id}>
+                                  {key.name} ({key.type.toUpperCase()})
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          ));
+                        })()}
+                      </>
                     )}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-text-secondary mt-1">
-                  No keys found? Add them in SSH Key Manager
+                  {formData.keyId === 'auto' 
+                    ? 'Will try all available keys until one succeeds'
+                    : 'No keys found? Add them in SSH Key Manager'
+                  }
                 </p>
               </FormField>
             )}
@@ -311,6 +382,13 @@ const ProfileManager: React.FC<ProfileManagerProps> = ({ open, onClose, onSave, 
           </Button>
         </ModalFooter>
       </ModalContent>
+
+      <IconPickerModal
+        open={showIconPicker}
+        onClose={() => setShowIconPicker(false)}
+        onSelect={(icon) => handleChange('icon', icon)}
+        currentIcon={formData.icon}
+      />
     </Modal>
   );
 };
