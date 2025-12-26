@@ -24,6 +24,8 @@ interface CommandPaletteProps {
   onShowSettings: () => void;
   onShowSync: () => void;
   onShowTunnels: () => void;
+  onShowSFTP?: () => void;
+  onShowSnippets?: () => void;
   onToggleSidebar?: () => void;
   onLock?: () => void;
   onChangeTheme?: (theme: 'dark' | 'light' | 'system') => void;
@@ -43,6 +45,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
   onShowSettings,
   onShowSync,
   onShowTunnels,
+  onShowSFTP,
+  onShowSnippets,
   onToggleSidebar,
   onLock,
   onChangeTheme,
@@ -59,6 +63,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     { id: 'nav-settings', label: 'Open Settings', group: 'Navigation', action: () => { onShowSettings(); onClose(); }, keywords: ['settings', 'preferences', 'open'] },
     { id: 'nav-sync', label: 'Open Cloud Sync', group: 'Navigation', action: () => { onShowSync(); onClose(); }, keywords: ['sync', 'cloud', 'google', 'drive', 'open'] },
     { id: 'nav-tunnels', label: 'Open Port Forwarding', group: 'Navigation', action: () => { onShowTunnels(); onClose(); }, keywords: ['tunnels', 'port', 'forwarding', 'open'] },
+    ...(onShowSFTP ? [{ id: 'nav-sftp', label: 'Open SFTP', group: 'Navigation' as const, action: () => { onShowSFTP(); onClose(); }, keywords: ['sftp', 'file', 'transfer', 'ftp', 'open'] }] : []),
+    ...(onShowSnippets ? [{ id: 'nav-snippets', label: 'Open Snippets', group: 'Navigation' as const, action: () => { onShowSnippets(); onClose(); }, keywords: ['snippets', 'commands', 'scripts', 'open'] }] : []),
     
     // Actions
     { id: 'action-new-profile', label: 'New Profile', group: 'Actions', action: () => { onNewProfile(); onClose(); }, keywords: ['new', 'create', 'profile', 'host'] },

@@ -55,7 +55,7 @@ const SSHKeyManager: React.FC<SSHKeyManagerProps> = ({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="ghost" onClick={() => setShowManageGroups(true)}>
+          <Button size="sm" variant="secondary" onClick={() => setShowManageGroups(true)}>
             Manage Groups
           </Button>
           <Button size="sm" variant="secondary" onClick={() => setShowImport(true)}>

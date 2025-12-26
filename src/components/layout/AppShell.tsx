@@ -19,6 +19,8 @@ interface AppShellProps {
   onShowWelcome: () => void;
   onShowAbout: () => void;
   onShowCommandPalette: () => void;
+  onShowSnippets: () => void;
+  onShowSFTP: () => void;
 }
 
 const AppShell: React.FC<AppShellProps> = ({ 
@@ -35,7 +37,9 @@ const AppShell: React.FC<AppShellProps> = ({
   onShowTunnels, 
   onShowWelcome,
   onShowAbout,
-  onShowCommandPalette
+  onShowCommandPalette,
+  onShowSnippets,
+  onShowSFTP
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanelVisible, setRightPanelVisible] = useState(false);
@@ -55,6 +59,8 @@ const AppShell: React.FC<AppShellProps> = ({
         onShowTunnels={onShowTunnels}
         onShowAbout={onShowAbout}
         onShowCommandPalette={onShowCommandPalette}
+        onShowSnippets={onShowSnippets}
+        onShowSFTP={onShowSFTP}
       />
 
       {/* Main Content Area */}

@@ -9,19 +9,22 @@ import { SettingsPanel } from './components/settings';
 import { CloudSyncSettings } from './components/sync';
 import { TunnelManager } from './components/tunnels';
 import { TerminalArea } from './components/terminal';
+import { SnippetsManager } from './components/snippets';
+import { SFTPManager } from './components/sftp';
 import SSHKeyManager from './components/keys';
-import { SSHProfile, SSHKey, Tunnel, Session } from './types';
+import { SSHProfile, SSHKey, Tunnel, Session, Snippet } from './types';
 
 function App() {
   const [profiles, setProfiles] = useState<SSHProfile[]>([]);
   const [keys, setKeys] = useState<SSHKey[]>([]);
   const [tunnels, setTunnels] = useState<Tunnel[]>([]);
+  const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [showProfileManager, setShowProfileManager] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [editingProfile, setEditingProfile] = useState<SSHProfile | undefined>(undefined);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'terminal' | 'keys' | 'settings' | 'sync' | 'tunnels' | 'about'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'terminal' | 'keys' | 'settings' | 'sync' | 'tunnels' | 'about' | 'snippets' | 'sftp'>('dashboard');
   const [isLocked, setIsLocked] = useState(true);
   const [hasPassword, setHasPassword] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
@@ -176,6 +179,46 @@ function App() {
     setTunnels(tunnels.map((t) => (t.id === id ? { ...t, enabled } : t)));
   };
 
+  const handleAddSnippet = (snippetData: Omit<Snippet, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newSnippet: Snippet = {
+      ...snippetData,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setSnippets([...snippets, newSnippet]);
+  };
+
+  const handleEditSnippet = (id: string, updates: Partial<Snippet>) => {
+    setSnippets(snippets.map((s) => (s.id === id ? { ...s, ...updates } : s)));
+  };
+
+  const handleDeleteSnippet = (id: string) => {
+    setSnippets(snippets.filter((s) => s.id !== id));
+  };
+
+  const handleRunSnippet = (snippet: Snippet) => {
+    // TODO: Implement snippet execution with variable substitution
+    console.log('Running snippet:', snippet.command);
+    // Update last used time
+    setSnippets(
+      snippets.map((s) =>
+        s.id === snippet.id ? { ...s, lastUsed: new Date().toISOString() } : s
+      )
+    );
+  };
+
+  const handlePasteSnippet = (snippet: Snippet) => {
+    // TODO: Implement paste to active terminal
+    console.log('Pasting snippet:', snippet.command);
+    // Update last used time
+    setSnippets(
+      snippets.map((s) =>
+        s.id === snippet.id ? { ...s, lastUsed: new Date().toISOString() } : s
+      )
+    );
+  };
+
   const handleConnectProfile = (profileId: string) => {
     // TODO: Implement actual SSH connection via Electron IPC
     const profile = profiles.find((p) => p.id === profileId);
@@ -238,6 +281,8 @@ function App() {
             onShowWelcome={() => setCurrentView('dashboard')}
             onShowAbout={() => setCurrentView('about')}
             onShowCommandPalette={() => setShowCommandPalette(true)}
+            onShowSnippets={() => setCurrentView('snippets')}
+            onShowSFTP={() => setCurrentView('sftp')}
           >
             {currentView === 'dashboard' ? (
               <Dashboard
@@ -274,6 +319,16 @@ function App() {
               <CloudSyncSettings onClose={() => setCurrentView('dashboard')} />
             ) : currentView === 'about' ? (
               <AboutPanel onClose={() => setCurrentView('dashboard')} />
+            ) : currentView === 'snippets' ? (
+              <SnippetsManager
+                snippets={snippets}
+                onAdd={handleAddSnippet}
+                onEdit={handleEditSnippet}
+                onDelete={handleDeleteSnippet}
+                onRun={handleRunSnippet}
+                onPaste={handlePasteSnippet}
+                onClose={() => setCurrentView('dashboard')}
+              />
             ) : currentView === 'tunnels' ? (
               <TunnelManager
                 tunnels={tunnels}
@@ -283,6 +338,8 @@ function App() {
                 onToggle={handleToggleTunnel}
                 onClose={() => setCurrentView('dashboard')}
               />
+            ) : currentView === 'sftp' ? (
+              <SFTPManager onClose={() => setCurrentView('dashboard')} />
             ) : null}
           </AppShell>
 
@@ -314,6 +371,8 @@ function App() {
             onShowSettings={() => setCurrentView('settings')}
             onShowSync={() => setCurrentView('sync')}
             onShowTunnels={() => setCurrentView('tunnels')}
+            onShowSFTP={() => setCurrentView('sftp')}
+            onShowSnippets={() => setCurrentView('snippets')}
             onLock={() => setIsLocked(true)}
             onChangeTheme={handleChangeTheme}
           />

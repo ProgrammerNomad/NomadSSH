@@ -15,6 +15,8 @@ interface TopBarProps {
   onShowTunnels: () => void;
   onShowAbout: () => void;
   onShowCommandPalette: () => void;
+  onShowSnippets: () => void;
+  onShowSFTP: () => void;
 }
 
 const TopBar: React.FC<TopBarProps> = ({ 
@@ -28,7 +30,9 @@ const TopBar: React.FC<TopBarProps> = ({
   onShowSync, 
   onShowTunnels,
   onShowAbout,
-  onShowCommandPalette
+  onShowCommandPalette,
+  onShowSnippets,
+  onShowSFTP
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -127,7 +131,16 @@ const TopBar: React.FC<TopBarProps> = ({
                 <span>Tunnels</span>
               </button>
               <button
-                onClick={() => handleMenuAction(onToggleRightPanel)}
+                onClick={() => handleMenuAction(onShowSnippets)}
+                className="w-full px-4 py-2 text-left text-sm text-text-primary hover:bg-border transition-colors flex items-center gap-3"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+                <span>Snippets</span>
+              </button>
+              <button
+                onClick={() => handleMenuAction(onShowSFTP)}
                 className="w-full px-4 py-2 text-left text-sm text-text-primary hover:bg-border transition-colors flex items-center gap-3"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

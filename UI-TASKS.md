@@ -67,6 +67,32 @@
 - ✅ **Empty State** - "No Active Session" message with terminal icon
 - ✅ **Profile Click Handler** - Sidebar click → create session → open terminal
 
+### Dashboard & About
+- ✅ **Dashboard Home Screen** - Replaces welcome screen with profile cards
+- ✅ **Profile Cards** - Circular avatars, connection status, tags, pin button, last connected time
+- ✅ **Quick Connect Search** - Filter by name, host, username, tags
+- ✅ **Stats Cards** - Total profiles, active sessions, pinned count, quick actions
+- ✅ **Sections** - Pinned profiles, recent connections, all profiles
+- ✅ **About Panel** - Separate dedicated page (v0.1.0, Tabby attribution, MIT license, GitHub link)
+
+### Command Palette
+- ✅ **Global Search (Ctrl+K)** - VS Code-style command palette
+- ✅ **Navigate Anywhere** - Open SSH Keys, Settings, Cloud Sync, SFTP, Tunnels
+- ✅ **Act on Profiles** - Connect, Edit, Pin any profile
+- ✅ **Create Things** - New Profile, Import/Generate SSH Key
+- ✅ **Perform Actions** - Lock Vault, Theme switching (Dark/Light/System)
+- ✅ **Keyboard Navigation** - ↑↓ arrows, Enter to select, Esc to close
+- ✅ **Grouped Results** - Profiles, Actions, Navigation
+- ✅ **Type-to-Filter** - Fuzzy search on labels and keywords
+
+### UI Polish & Professional Design
+- ✅ **TopBar Menu Consolidation** - SSH Keys, Tunnels, SFTP, Sync, Settings in dropdown menu
+- ✅ **SVG Icons** - Replaced emojis with professional Heroicons
+- ✅ **Panel Back Buttons** - ← arrow on SSH Keys, Settings, Cloud Sync, Tunnels panels
+- ✅ **Status Bar Interactivity** - Clickable "Sync: Off" and "Not connected" items
+- ✅ **Collapse Button Placement** - Show on sidebar hover only (reduced visual noise)
+- ✅ **Profiles-First Sidebar** - Home button, profile list, tag filters, Add Profile CTA
+
 ---
 
 ## Termius-Inspired Features to Add
@@ -129,26 +155,29 @@ Select SSH Key                    [▼]
 - ✅ Professional UX (like AWS profiles, SSH config)
 
 **Implementation Tasks:**
-- ⬜ Add `group` field to SSHKey type (string, optional, default: "Personal")
-- ⬜ Create `KeyGroupHeader` component (collapsible)
-- ⬜ Update `KeyList` to render by groups
-- ⬜ Add "Manage Groups" modal (create, rename, delete)
-- ⬜ Update key import/generate forms with group selector
-- ⬜ Update `ProfileManager` key dropdown to show grouped select
-- ⬜ Add "Move to Group" action in key context menu
+- ✅ Add `group` field to SSHKey type (string, optional, default: "Personal")
+- ✅ Create `KeyGroupHeader` component (collapsible)
+- ✅ Update `KeyList` to render by groups (`KeyListGrouped` component)
+- ✅ Add "Manage Groups" modal (create, rename, delete)
+- ✅ Update key import/generate forms with group selector
+- ✅ Update `ProfileManager` key dropdown to show grouped select
+- ✅ Move to Group functionality in KeyListGrouped
 
 ---
 
 ### High Priority - Profile Organization (Tags vs Groups)
 
-#### ⬜ Profile Tags (Already Implemented - Just Enhance)
+#### ✅ Profile Tags (Enhanced)
 **Current:** Profiles have comma-separated tags.
 
-**Enhancement Needed:**
-- Tag autocomplete (suggest existing tags)
-- Tag filter in sidebar (click tag to filter)
-- Tag colors (auto-assign based on tag name hash)
-- Predefined tag suggestions: `prod`, `staging`, `dev`, `client-acme`, `client-xyz`
+**Enhancements Completed:**
+- ✅ Tag autocomplete (suggest existing tags as you type)
+- ✅ Tag filter in sidebar (collapsible section with checkboxes)
+- ✅ Tag colors (auto-assign based on tag name hash - 10 color palette)
+- ✅ Predefined tag suggestions: `prod`, `staging`, `dev`, `test`, `database`, `web`, `api`, `admin`, `personal`, `work`, `client`
+- ✅ Real-time tag preview in ProfileManager
+- ✅ Click-to-insert tag suggestions
+- ✅ Color-coded tag badges in HostCard (shows 3 + counter)
 
 **Key Insight:** 
 - **Keys** = Groups (security context: who owns this key?)
@@ -390,16 +419,16 @@ Open PowerShell/Bash on local machine:
 
 ### Phase 2 - Organization & Productivity (Termius-Inspired)
 **Priority Order:**
-1. ⬜ **SSH Key Groups** (security context grouping)
-   - Add group field to keys
-   - Collapsible group headers
-   - Grouped key selector in profile form
-   - Manage groups modal
-2. ⬜ **Profile Tag Enhancements**
-   - Tag autocomplete
-   - Tag-based filtering in sidebar
-   - Tag color coding
-3. ⬜ **Command Snippets Manager** (RUN/PASTE buttons)
+1. ✅ **SSH Key Groups** (security context grouping) - COMPLETED
+   - ✅ Add group field to keys
+   - ✅ Collapsible group headers
+   - ✅ Grouped key selector in profile form
+   - ✅ Manage groups modal
+2. ✅ **Profile Tag Enhancements** - COMPLETED
+   - ✅ Tag autocomplete
+   - ✅ Tag-based filtering in sidebar
+   - ✅ Tag color coding
+3. ⬜ **Command Snippets Manager** (RUN/PASTE buttons) - NEXT UP
    - Dedicated screen with snippet list
    - Execute or paste into terminal
    - Snippet categories

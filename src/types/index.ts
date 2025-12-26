@@ -40,3 +40,18 @@ export interface Session {
   connected: boolean;
   startedAt: string;
 }
+
+export interface Snippet {
+  id: string;
+  name: string;
+  command: string;
+  description?: string;
+  category: 'System' | 'Network' | 'Docker' | 'Git' | 'Database' | 'Custom';
+  tags?: string[];
+  variables?: string[]; // Extracted variables like ${HOST}, ${USER}
+  lastUsed?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export * from './sftp';
