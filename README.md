@@ -102,7 +102,7 @@ No manual copying. No insecure exports.
 
 | Component | Technology |
 |-----------|-----------|
-| **UI** | Electron + TypeScript |
+| **UI** | Electron + React + TypeScript + Tailwind CSS |
 | **Terminal Engine** | xterm.js |
 | **SSH Engine** | ssh2 |
 | **SFTP** | ssh2-sftp-client |
