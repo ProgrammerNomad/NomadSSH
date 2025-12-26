@@ -280,12 +280,17 @@ ssh -L ${PORT}:localhost:${PORT} ${USER}@${HOST}
 
 ### Medium Priority - SFTP Enhanced
 
-#### ⬜ Dedicated SFTP Screen
-Not just right panel toggle - full-screen option:
-- **Accessible from Sidebar** - "SFTP" as dedicated nav item
-- **Dual-Pane Layout** - Left: Local files, Right: Remote files
-- **Breadcrumb Navigation** - Path navigation at top of each pane
-- **File Browser** - Icons for file types, size, modified date
+#### ✅ Dedicated SFTP Screen
+Full-screen SFTP workspace:
+- ✅ **Accessible from TopBar Menu** - "SFTP" in dropdown
+- ✅ **Accessible from Command Palette** - Ctrl+K → "Open SFTP"
+- ✅ **Dual-Pane Layout** - Left: Local files, Right: Remote files
+- ✅ **Breadcrumb Navigation** - Path navigation at top of each pane
+- ✅ **File Browser** - Icons for file types, size, modified date, permissions
+- ✅ **Transfer Queue** - Bottom panel with progress bars, pause/resume/cancel
+- ✅ **Keyboard Shortcuts** - Enter (open folder), Backspace (go up), Ctrl+→/← (upload/download), Delete
+- ✅ **Compact Header** - Tool view feel (p-3 padding, simple title)
+- ✅ **Focus Tracking** - Keyboard shortcuts respect active pane
 
 #### ⬜ File Operations
 - **Drag-and-Drop** - Drag files between panes or from OS
@@ -295,11 +300,11 @@ Not just right panel toggle - full-screen option:
 - **Permissions Editor** - chmod via UI (checkboxes for rwx)
 
 #### ⬜ File Browser Features
-- **Sorting** - By name, size, date (click column headers)
-- **Search** - Find files in current directory
-- **Right-Click Menu** - Rename, Delete, Permissions, Download/Upload, New Folder
-- **Keyboard Shortcuts** - Enter to open, Delete to remove, F2 to rename
-- **Selection** - Ctrl+Click for multiple files
+- ✅ **Sorting** - By name, size, date (click column headers)
+- ✅ **Search** - Find files in current directory
+- ⬜ **Right-Click Menu** - Rename, Delete, Permissions, Download/Upload, New Folder
+- ✅ **Keyboard Shortcuts** - Enter to open, Delete to remove, Backspace to go up, Ctrl+arrows for transfer
+- ⬜ **Multi-Selection** - Ctrl+Click for multiple files
 
 ---
 
@@ -428,16 +433,21 @@ Open PowerShell/Bash on local machine:
    - ✅ Tag autocomplete
    - ✅ Tag-based filtering in sidebar
    - ✅ Tag color coding
-3. ⬜ **Command Snippets Manager** (RUN/PASTE buttons) - NEXT UP
-   - Dedicated screen with snippet list
-   - Execute or paste into terminal
-   - Snippet categories
-   - Variable substitution (${HOST}, ${USER})
-4. ⬜ **Enhanced SFTP**
-   - Dedicated full-screen mode
-   - Dual-pane file browser
-   - Drag-and-drop transfers
-   - Transfer queue with progress
+3. ✅ **Command Snippets Manager** - COMPLETED
+   - ✅ Dedicated screen with snippet list
+   - ✅ Execute (RUN) or paste (PASTE) into terminal
+   - ✅ Snippet categories (System, Network, Docker, Git, Database, Custom)
+   - ✅ Variable detection (${HOST}, ${USER}, ${PORT}, etc.)
+   - ✅ Recent snippets section
+   - ✅ Search and category filtering
+4. ✅ **Enhanced SFTP** - CORE COMPLETE
+   - ✅ Dedicated full-screen mode
+   - ✅ Dual-pane file browser
+   - ✅ Transfer queue with progress bars
+   - ✅ Keyboard shortcuts for navigation and transfer
+   - ⬜ Right-click context menu (remaining)
+   - ⬜ Permissions editor modal (remaining)
+   - ⬜ Drag-and-drop transfers (remaining)
 
 ### Phase 3 - Visual Polish & Power Features
 - ⬜ Host Groups (visual folders for profiles)
