@@ -5,7 +5,9 @@
 
 ---
 
-NomadSSH is an open-source, cross-platform SSH client built for developers who work across multiple machines and environments. It combines the power of traditional SSH clients (like Bitvise) with modern features such as encrypted cloud sync, portability, and extensibility.
+NomadSSH is an open-source, cross-platform SSH client built on top of the excellent Tabby Terminal project. It is designed for developers and operators who work across multiple machines and environments and need their SSH setup to follow them everywhere.
+
+NomadSSH extends Tabby with a strong focus on encrypted cloud sync, portability, and daily power-user workflows, while preserving the reliability and performance of a mature SSH client.
 
 ---
 
@@ -25,17 +27,19 @@ NomadSSH is an open-source, cross-platform SSH client built for developers who w
 
 Most SSH clients:
 
-- Store profiles locally
-- Lose configuration on reinstall
-- Don't sync securely across devices
+- Store profiles only locally
+- Lose configuration on reinstall or machine change
+- Don't offer secure, user-controlled sync
 
-**NomadSSH solves this.**
+**NomadSSH solves this problem.**
 
 With NomadSSH, you can:
 
-1. Sign in on a new machine
+1. Install the app on a new machine
 2. Enter your master password
 3. Instantly restore all SSH profiles, keys, and layouts
+
+No manual copying. No insecure exports.
 
 ---
 
@@ -46,14 +50,14 @@ With NomadSSH, you can:
 - **Master password–based encryption**
 - **AES-256-GCM encrypted data**
 - **Private keys never leave your device unencrypted**
-- **Zero-knowledge cloud sync** (even cloud providers can't read data)
+- **Zero-knowledge cloud sync** (cloud providers cannot read your data)
 
 ### SSH Client
 
 - SSH shell & exec
 - Password & key-based authentication
 - SSH agent support
-- Session logging (optional)
+- Optional session logging
 
 ### SFTP
 
@@ -147,7 +151,7 @@ npm run dev
 
 ## Encryption & Privacy
 
-NomadSSH uses a **zero-knowledge security model**:
+NomadSSH follows a **zero-knowledge security model**:
 
 - All sensitive data is encrypted locally
 - Encryption keys are derived from your master password
@@ -180,7 +184,7 @@ NomadSSH uses a **zero-knowledge security model**:
 
 ## Contributing
 
-**Contributions are welcome!**
+**Contributions are welcome and appreciated.**
 
 You can help by:
 
@@ -189,20 +193,27 @@ You can help by:
 - Adding plugins
 - Improving documentation
 
-Please read `CONTRIBUTING.md` before submitting PRs.
+Please read `CONTRIBUTING.md` before submitting pull requests.
 
 ---
 
 ## License
 
-NomadSSH is licensed under the **MIT License**.  
-You are free to use, modify, and distribute it.
+NomadSSH is licensed under the **MIT License**.
+
+This project is based on Tabby, which is also MIT licensed.  
+All original Tabby copyright notices are preserved.
+
+---
+
+## Acknowledgements
+
+NomadSSH is built on top of the amazing **Tabby Terminal** project and its community.  
+Without Tabby, this project would not exist.
 
 ---
 
 ## Inspiration
-
-NomadSSH is inspired by:
 
 - **Bitvise SSH Client**
 - Modern terminal workflows
@@ -212,7 +223,7 @@ NomadSSH is inspired by:
 
 ## Vision
 
-> *NomadSSH aims to be the last SSH client you ever need,  
+> *NomadSSH aims to be the last SSH client you ever need —  
 > no matter where you work from.*
 
 ---
@@ -221,10 +232,10 @@ NomadSSH is inspired by:
 
 If you find NomadSSH useful:
 
-- **Star the repo**
-- **Share feedback**
-- **Contribute code or ideas**
+- Star the repository
+- Share feedback
+- Contribute code or ideas
 
 ---
 
-**Made with love by a Nomad Programmer**
+**Made with ❤️ by a Nomad Programmer**
