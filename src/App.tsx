@@ -203,6 +203,20 @@ function App() {
   };
 
   const handleProfileSelect = (profile: Profile) => {
+    console.log('[App] Profile selected:', profile.name);
+    console.log('[App] Existing tabs:', tabs.map(t => ({ id: t.id, name: t.profileName })));
+    
+    // Check if a tab for this profile already exists
+    const existingTab = tabs.find(tab => tab.profileName === profile.name);
+    
+    if (existingTab) {
+      console.log('[App] Found existing tab, switching to:', existingTab.id);
+      // Switch to existing tab instead of creating new one
+      handleTabClick(existingTab.id);
+      return;
+    }
+    
+    console.log('[App] No existing tab, creating new one');
     // Generate unique tab ID
     const tabId = `tab_${Date.now()}_${profile.id}`;
     
@@ -217,6 +231,11 @@ function App() {
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(tabId);
     setShowDashboard(false);
+    
+    // Hide all existing terminal containers before creating new one
+    containersRef.current.forEach((container) => {
+      container.style.display = 'none';
+    });
     
     // Create terminal container
     const container = document.createElement('div');
@@ -276,6 +295,9 @@ function App() {
   };
 
   const handleTabClick = (tabId: string) => {
+    console.log('[App] Tab clicked:', tabId);
+    console.log('[App] Current activeTabId:', activeTabId);
+    
     // Switch to tab and show terminal area
     setActiveTabId(tabId);
     setShowDashboard(false);
@@ -283,6 +305,7 @@ function App() {
     // Hide all terminal containers
     containersRef.current.forEach((container, id) => {
       container.style.display = id === tabId ? 'block' : 'none';
+      console.log(`[App] Container ${id} display:`, container.style.display);
     });
     
     // Focus the active terminal

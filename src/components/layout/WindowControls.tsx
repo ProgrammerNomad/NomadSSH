@@ -15,23 +15,36 @@ const WindowControls: React.FC = () => {
   }, []);
 
   const handleMinimize = () => {
+    console.log('[WindowControls] Minimize clicked');
+    console.log('[WindowControls] window.nomad:', window.nomad);
     if (window.nomad?.window?.minimize) {
+      console.log('[WindowControls] Calling minimize');
       window.nomad.window.minimize();
+    } else {
+      console.error('[WindowControls] window.nomad.window.minimize not available');
     }
   };
 
   const handleMaximize = async () => {
+    console.log('[WindowControls] Maximize clicked');
     if (window.nomad?.window?.maximize && window.nomad?.window?.isMaximized) {
+      console.log('[WindowControls] Calling maximize');
       window.nomad.window.maximize();
       // Toggle state after action
       const maximized = await window.nomad.window.isMaximized();
       setIsMaximized(maximized);
+    } else {
+      console.error('[WindowControls] window.nomad.window.maximize not available');
     }
   };
 
   const handleClose = () => {
+    console.log('[WindowControls] Close clicked');
     if (window.nomad?.window?.close) {
+      console.log('[WindowControls] Calling close');
       window.nomad.window.close();
+    } else {
+      console.error('[WindowControls] window.nomad.window.close not available');
     }
   };
 
