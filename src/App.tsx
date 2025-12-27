@@ -9,6 +9,8 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { TopBar } from './components/layout/TopBar';
 import { Sidebar } from './components/layout/Sidebar';
+import { ManageCategoriesModal, Category } from './components/categories';
+import { ManageKeysModal, SSHKey } from './components/keys';
 
 interface Profile {
   id: string;
@@ -18,6 +20,8 @@ interface Profile {
   username: string;
   password: string;
   authMethod: string;
+  categoryId?: string;
+  keyId?: string;
 }
 
 function App() {
@@ -27,6 +31,21 @@ function App() {
   const [status, setStatus] = useState('Initializing...');
   const [connected, setConnected] = useState(false);
   const [activeProfileId, setActiveProfileId] = useState<string | undefined>();
+  
+  // Modal states
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
+  const [showKeysModal, setShowKeysModal] = useState(false);
+  
+  // Categories with defaults
+  const [categories, setCategories] = useState<Category[]>([
+    { id: 'cat_personal', name: 'Personal', isDefault: true },
+    { id: 'cat_work', name: 'Work', isDefault: true },
+    { id: 'cat_clients', name: 'Clients', isDefault: true }
+  ]);
+  
+  // SSH Keys
+  const [sshKeys, setSshKeys] = useState<SSHKey[]>([]);
+  
   const [profiles] = useState<Profile[]>([
     {
       id: 'paddockavenue',
@@ -206,6 +225,18 @@ function App() {
     alert('Add Profile - Coming soon!');
   };
 
+  const handleSaveCategories = (updatedCategories: Category[]) => {
+    setCategories(updatedCategories);
+    // TODO: Save to localStorage
+    console.log('Categories saved:', updatedCategories);
+  };
+
+  const handleSaveKeys = (updatedKeys: SSHKey[]) => {
+    setSshKeys(updatedKeys);
+    // TODO: Save to localStorage with encryption
+    console.log('SSH Keys saved:', updatedKeys.length);
+  };
+
   // Focus terminal when clicked
   const handleTerminalClick = () => {
     if (terminalRef.current) {
@@ -228,8 +259,8 @@ function App() {
         status={status}
         connected={connected}
         onSearch={(query) => console.log('Search:', query)}
-        onSettingsClick={() => alert('Settings coming soon!')}
-        onPreferencesClick={() => alert('Preferences coming soon!')}
+        onSettingsClick={() => setShowCategoriesModal(true)}
+        onPreferencesClick={() => setShowKeysModal(true)}
         onAboutClick={() => alert('About NomadSSH\n\nVersion 1.0.0\nBased on Tabby Terminal')}
       />
 
@@ -259,6 +290,21 @@ function App() {
           }}
         />
       </div>
+
+      {/* Modals */}
+      <ManageCategoriesModal
+        isOpen={showCategoriesModal}
+        onClose={() => setShowCategoriesModal(false)}
+        categories={categories}
+        onSave={handleSaveCategories}
+      />
+
+      <ManageKeysModal
+        isOpen={showKeysModal}
+        onClose={() => setShowKeysModal(false)}
+        keys={sshKeys}
+        onSave={handleSaveKeys}
+      />
     </div>
   );
 }
