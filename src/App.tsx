@@ -1,613 +1,379 @@
-import React, { useState, useEffect } from 'react';
-import { AppShell } from './components/layout';
-import { ProfileManager } from './components/profiles';
-import ManageHostGroupsModal from './components/profiles/ManageHostGroupsModal';
-import { Dashboard } from './components/dashboard';
-import { MasterPasswordModal } from './components/auth';
-import { AboutPanel } from './components/about';
-import { CommandPalette } from './components/command';
-import { SettingsPanel } from './components/settings';
-import { CloudSyncSettings } from './components/sync';
-import { TunnelManager } from './components/tunnels';
-import { TerminalArea } from './components/terminal';
-import { SnippetsManager } from './components/snippets';
-import { SFTPManager } from './components/sftp';
-import SSHKeyManager from './components/keys';
-import { SSHProfile, SSHKey, Tunnel, Session, Snippet, CommandHistory } from './types';
-import CommandHistoryManager from './components/history/CommandHistoryManager';
+/**
+ * STEP 2: ADD SIDEBAR WITH PROFILES
+ * 
+ * Adding sidebar with profile list, but keeping same working terminal code.
+ */
+
+import React, { useRef, useEffect, useState } from 'react';
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+
+interface Profile {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  authMethod: string;
+}
 
 function App() {
-  const [profiles, setProfiles] = useState<SSHProfile[]>([]);
-  const [keys, setKeys] = useState<SSHKey[]>([]);
-  const [tunnels, setTunnels] = useState<Tunnel[]>([]);
-  const [snippets, setSnippets] = useState<Snippet[]>([]);
-  const [commandHistory, setCommandHistory] = useState<CommandHistory[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [hostGroups, setHostGroups] = useState<string[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [showProfileManager, setShowProfileManager] = useState(false);
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [showManageGroups, setShowManageGroups] = useState(false);
-  const [editingProfile, setEditingProfile] = useState<SSHProfile | undefined>(undefined);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'terminal' | 'keys' | 'settings' | 'sync' | 'tunnels' | 'about' | 'snippets' | 'sftp' | 'history'>('dashboard');
-  const [isLocked, setIsLocked] = useState(true);
-  const [hasPassword, setHasPassword] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
-
-  // Load data from storage on mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        console.log('[App] Loading data from storage...');
-        
-        const [profilesRes, keysRes, snippetsRes, tunnelsRes, groupsRes] = await Promise.all([
-          window.nomad.storage.getProfiles(),
-          window.nomad.storage.getKeys(),
-          window.nomad.storage.getSnippets(),
-          window.nomad.storage.getTunnels(),
-          window.nomad.storage.getHostGroups(),
-        ]);
-
-        if (profilesRes.success && profilesRes.data) {
-          setProfiles(profilesRes.data);
-          console.log('[App] Loaded profiles:', profilesRes.data.length);
-        }
-        if (keysRes.success && keysRes.data) {
-          setKeys(keysRes.data);
-          console.log('[App] Loaded keys:', keysRes.data.length);
-        }
-        if (snippetsRes.success && snippetsRes.data) {
-          setSnippets(snippetsRes.data);
-          console.log('[App] Loaded snippets:', snippetsRes.data.length);
-        }
-        if (tunnelsRes.success && tunnelsRes.data) {
-          setTunnels(tunnelsRes.data);
-          console.log('[App] Loaded tunnels:', tunnelsRes.data.length);
-        }
-        if (groupsRes.success && groupsRes.data) {
-          // If no groups in storage, use defaults
-          const loadedGroups = groupsRes.data.length > 0 
-            ? groupsRes.data 
-            : ['Work', 'Personal', 'Clients', 'Staging', 'Production', 'Development'];
-          setHostGroups(loadedGroups);
-          console.log('[App] Loaded host groups:', loadedGroups.length, loadedGroups);
-          
-          // Save defaults if storage was empty
-          if (groupsRes.data.length === 0 && loadedGroups.length > 0) {
-            window.nomad.storage.saveHostGroups(loadedGroups)
-              .then(() => console.log('[App] Saved default host groups'))
-              .catch((err) => console.error('[App] Error saving default groups:', err));
-          }
-        }
-      } catch (error) {
-        console.error('[App] Error loading data:', error);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  // Auto-save profiles when they change
-  useEffect(() => {
-    if (profiles.length === 0) return; // Skip initial empty state
-    
-    const timer = setTimeout(() => {
-      window.nomad.storage.saveProfiles(profiles)
-        .then(() => console.log('[App] Saved profiles:', profiles.length))
-        .catch((err) => console.error('[App] Error saving profiles:', err));
-    }, 500); // Debounce 500ms
-
-    return () => clearTimeout(timer);
-  }, [profiles]);
-
-  // Auto-save keys when they change
-  useEffect(() => {
-    if (keys.length === 0) return;
-    
-    const timer = setTimeout(() => {
-      window.nomad.storage.saveKeys(keys)
-        .then(() => console.log('[App] Saved keys:', keys.length))
-        .catch((err) => console.error('[App] Error saving keys:', err));
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [keys]);
-
-  // Auto-save snippets when they change
-  useEffect(() => {
-    if (snippets.length === 0) return;
-    
-    const timer = setTimeout(() => {
-      window.nomad.storage.saveSnippets(snippets)
-        .then(() => console.log('[App] Saved snippets:', snippets.length))
-        .catch((err) => console.error('[App] Error saving snippets:', err));
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [snippets]);
-
-  // Auto-save tunnels when they change
-  useEffect(() => {
-    if (tunnels.length === 0) return;
-    
-    const timer = setTimeout(() => {
-      window.nomad.storage.saveTunnels(tunnels)
-        .then(() => console.log('[App] Saved tunnels:', tunnels.length))
-        .catch((err) => console.error('[App] Error saving tunnels:', err));
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [tunnels]);
-
-  // Auto-save host groups when they change
-  useEffect(() => {
-    // Skip if empty (initial state before load)
-    if (hostGroups.length === 0) return;
-    
-    const timer = setTimeout(() => {
-      window.nomad.storage.saveHostGroups(hostGroups)
-        .then(() => console.log('[App] Saved host groups:', hostGroups.length))
-        .catch((err) => console.error('[App] Error saving host groups:', err));
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [hostGroups]);
-
-  useEffect(() => {
-    // Check if master password exists in storage
-    const passwordExists = localStorage.getItem('hasPassword') === 'true';
-    setHasPassword(passwordExists);
-  }, []);
-
-  // Global keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+K to open command palette
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        setShowCommandPalette(true);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  const handleCreatePassword = (password: string) => {
-    // TODO: Implement password hashing and storage
-    console.log('Creating master password...');
-    localStorage.setItem('hasPassword', 'true');
-    setHasPassword(true);
-    setIsLocked(false);
-  };
-
-  const handleUnlock = (password: string) => {
-    // TODO: Implement password verification
-    console.log('Unlocking with password...');
-    setIsLocked(false);
-  };
-
-  const handleSaveProfile = (profileData: Omit<SSHProfile, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (editingProfile) {
-      // Update existing profile
-      setProfiles(
-        profiles.map((p) =>
-          p.id === editingProfile.id
-            ? { ...p, ...profileData, updatedAt: new Date().toISOString() }
-            : p
-        )
-      );
-      setEditingProfile(undefined);
-    } else {
-      // Create new profile
-      const newProfile: SSHProfile = {
-        ...profileData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setProfiles([...profiles, newProfile]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const terminalRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
+  const [status, setStatus] = useState('Initializing...');
+  const [connected, setConnected] = useState(false);
+  const [profiles] = useState<Profile[]>([
+    {
+      id: 'paddockavenue',
+      name: 'paddockavenue',
+      host: '198.96.88.179',
+      port: 22,
+      username: 'paddockavenue',
+      password: 'hOq$hYj93I%pala6',
+      authMethod: 'password'
     }
-  };
+  ]);
 
-  const handleEditProfile = (profile: SSHProfile) => {
-    setEditingProfile(profile);
-    setShowProfileManager(true);
-  };
+  useEffect(() => {
+    // Prevent double initialization (React StrictMode runs effects twice)
+    if (terminalRef.current) {
+      console.log('[App] Terminal already initialized, skipping...');
+      return;
+    }
 
-  const handleTogglePin = (profileId: string) => {
-    setProfiles(
-      profiles.map((p) =>
-        p.id === profileId ? { ...p, isPinned: !p.isPinned } : p
-      )
-    );
-  };
+    if (!containerRef.current) return;
 
-  const handleCloseProfileManager = () => {
-    setShowProfileManager(false);
-    setEditingProfile(undefined);
-  };
+    console.log('[App] Starting terminal initialization...');
+    
+    // Create terminal instance
+    const terminal = new Terminal({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: 'Cascadia Code, Fira Code, Consolas, Monaco, monospace',
+      theme: {
+        background: '#000000',
+        foreground: '#E5E7EB',
+        cursor: '#06B6D4',
+        black: '#18181B',
+        red: '#EF4444',
+        green: '#10B981',
+        yellow: '#F59E0B',
+        blue: '#3B82F6',
+        magenta: '#A855F7',
+        cyan: '#06B6D4',
+        white: '#E5E7EB',
+      }
+    });
 
-  const handleChangeTheme = (newTheme: 'dark' | 'light' | 'system') => {
-    setTheme(newTheme);
-    // TODO: Apply theme to document
-    console.log('Theme changed to:', newTheme);
-  };
+    // Create fit addon
+    const fitAddon = new FitAddon();
+    terminal.loadAddon(fitAddon);
 
-  const handleImportKey = (name: string, path: string, group?: string) => {
-    const newKey: SSHKey = {
-      id: Date.now().toString(),
-      name,
-      type: 'rsa',
-      fingerprint: 'SHA256:' + Math.random().toString(36).substring(2, 15),
-      path,
-      group: group || 'Personal',
-      createdAt: new Date().toISOString(),
-    };
-    setKeys([...keys, newKey]);
-  };
+    // Store refs
+    terminalRef.current = terminal;
+    fitAddonRef.current = fitAddon;
 
-  const handleGenerateKey = (name: string, type: string, bits: number, group?: string) => {
-    const newKey: SSHKey = {
-      id: Date.now().toString(),
-      name,
-      type: type as 'rsa' | 'ed25519' | 'ecdsa',
-      fingerprint: 'SHA256:' + Math.random().toString(36).substring(2, 15),
-      path: `~/.ssh/${name.toLowerCase().replace(/\s+/g, '_')}`,
-      group: group || 'Personal',
-      createdAt: new Date().toISOString(),
-    };
-    setKeys([...keys, newKey]);
-  };
-
-  const handleDeleteKey = (keyId: string) => {
-    setKeys(keys.filter((k) => k.id !== keyId));
-  };
-
-  const handleMoveKeyGroup = (keyId: string, newGroup: string) => {
-    setKeys(keys.map((k) => (k.id === keyId ? { ...k, group: newGroup } : k)));
-  };
-
-  const handleCreateGroup = (groupName: string) => {
-    // Groups are dynamic based on keys - no need to store separately
-    console.log('Group created:', groupName);
-  };
-
-  const handleRenameGroup = (oldName: string, newName: string) => {
-    // Update all keys in the old group to the new group
-    setKeys(keys.map((k) => (k.group === oldName ? { ...k, group: newName } : k)));
-  };
-
-  const handleDeleteGroup = (groupName: string) => {
-    // Move all keys in this group to "Personal"
-    setKeys(keys.map((k) => (k.group === groupName ? { ...k, group: 'Personal' } : k)));
-  };
-
-  const handleAddTunnel = (tunnel: Omit<Tunnel, 'id'>) => {
-    const newTunnel: Tunnel = {
-      ...tunnel,
-      id: Date.now().toString(),
-    };
-    setTunnels([...tunnels, newTunnel]);
-  };
-
-  const handleEditTunnel = (id: string, updates: Partial<Tunnel>) => {
-    setTunnels(tunnels.map((t) => (t.id === id ? { ...t, ...updates } : t)));
-  };
-
-  const handleDeleteTunnel = (id: string) => {
-    setTunnels(tunnels.filter((t) => t.id !== id));
-  };
-
-  const handleToggleTunnel = (id: string, enabled: boolean) => {
-    setTunnels(tunnels.map((t) => (t.id === id ? { ...t, enabled } : t)));
-  };
-
-  const handleAddSnippet = (snippetData: Omit<Snippet, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newSnippet: Snippet = {
-      ...snippetData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setSnippets([...snippets, newSnippet]);
-  };
-
-  const handleEditSnippet = (id: string, updates: Partial<Snippet>) => {
-    setSnippets(snippets.map((s) => (s.id === id ? { ...s, ...updates } : s)));
-  };
-
-  const handleDeleteSnippet = (id: string) => {
-    setSnippets(snippets.filter((s) => s.id !== id));
-  };
-
-  const handleRunSnippet = (snippet: Snippet) => {
-    // TODO: Implement snippet execution with variable substitution
-    console.log('Running snippet:', snippet.command);
-    // Update last used time
-    setSnippets(
-      snippets.map((s) =>
-        s.id === snippet.id ? { ...s, lastUsed: new Date().toISOString() } : s
-      )
-    );
-  };
-
-  const handlePasteSnippet = (snippet: Snippet) => {
-    // TODO: Implement paste to active terminal
-    console.log('Pasting snippet:', snippet.command);
-    // Update last used time
-    setSnippets(
-      snippets.map((s) =>
-        s.id === snippet.id ? { ...s, lastUsed: new Date().toISOString() } : s
-      )
-    );
-  };
-
-  const handleAddCommandHistory = (commandData: Omit<CommandHistory, 'id'>) => {
-    const newCommand: CommandHistory = {
-      ...commandData,
-      id: Date.now().toString(),
-    };
-    setCommandHistory([newCommand, ...commandHistory]);
-  };
-
-  const handleRerunCommand = (command: string) => {
-    // TODO: Execute command in active terminal
-    console.log('Re-running command:', command);
-  };
-
-  const handleExportHistory = () => {
-    const json = JSON.stringify(commandHistory, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `command-history-${new Date().toISOString()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleCreateHostGroup = (groupName: string) => {
-    setHostGroups([...hostGroups, groupName]);
-  };
-
-  const handleRenameHostGroup = (oldName: string, newName: string) => {
-    setHostGroups(hostGroups.map((g) => (g === oldName ? newName : g)));
-    // Update profiles in this group
-    setProfiles(
-      profiles.map((p) => (p.group === oldName ? { ...p, group: newName } : p))
-    );
-  };
-
-  const handleDeleteHostGroup = (groupName: string) => {
-    setHostGroups(hostGroups.filter((g) => g !== groupName));
-    // Move profiles to ungrouped
-    setProfiles(
-      profiles.map((p) => (p.group === groupName ? { ...p, group: undefined } : p))
-    );
-  };
-
-  const handleConnectProfile = async (profileId: string) => {
-    const profile = profiles.find((p) => p.id === profileId);
-    if (!profile) return;
-
-    try {
-      console.log('[App] Connecting to profile:', profile.name);
-      
-      // Switch to terminal view immediately
-      setCurrentView('terminal');
-
-      // Connect to SSH via Electron IPC
-      const result = await window.nomad.ssh.connect(profile, keys);
-      console.log('[App] SSH connect result:', result);
-
-      if (!result.success || !result.sessionId) {
-        // Connection failed
-        console.error('[App] SSH connection failed:', result.error);
-        alert(`Connection failed: ${result.error || 'Unknown error'}`);
+    // Wait for next frame to ensure container has dimensions
+    requestAnimationFrame(() => {
+      // Check if terminal was disposed or replaced before this frame ran
+      if (terminalRef.current !== terminal) {
+        console.log('[App] Terminal instance disposed or replaced, skipping open...');
         return;
       }
 
-      console.log('[App] SSH connection successful, sessionId:', result.sessionId);
+      if (!containerRef.current) return;
 
-      // Update last connected time
-      setProfiles(
-        profiles.map((p) =>
-          p.id === profileId
-            ? { ...p, lastConnected: new Date().toISOString() }
-            : p
-        )
-      );
+      // Clear container just in case
+      containerRef.current.innerHTML = '';
 
-      // Create session object
-      const newSession: Session = {
-        id: result.sessionId,
-        profileId,
-        connected: true,
-        startedAt: new Date().toISOString(),
-      };
+      console.log('[App] Opening terminal...');
+      terminal.open(containerRef.current);
+      fitAddon.fit();
 
-      // Add session to state
-      setSessions([...sessions, newSession]);
-      setActiveSessionId(result.sessionId);
-    } catch (error) {
-      console.error('SSH connection error:', error);
-      alert(`Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log('[App] Terminal opened, cols:', terminal.cols, 'rows:', terminal.rows);
+
+      // Focus terminal immediately
+      terminal.focus();
+      
+      setStatus('Connecting to SSH...');
+
+      // Auto-connect to first profile
+      connectSSH(terminal, profiles[0]);
+    });
+
+    // Handle window resize
+    const handleResize = () => {
+      if (fitAddon && terminal) {
+        fitAddon.fit();
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => {
+      console.log('[App] Cleaning up terminal...');
+      window.removeEventListener('resize', handleResize);
+      if (terminalRef.current) {
+        terminalRef.current.dispose();
+        terminalRef.current = null;
+      }
+    };
+  }, []);
+
+  const connectSSH = async (terminal: Terminal, profile: Profile) => {
+    // Clear terminal for fresh start
+    terminal.clear();
+    
+    terminal.writeln(`\x1b[36mConnecting to ${profile.host}:${profile.port}...\x1b[0m`);
+    terminal.writeln(`\x1b[36mUsername: ${profile.username}\x1b[0m`);
+    terminal.writeln('');
+
+    try {
+      const result = await window.nomad.ssh.connect(profile, []);
+
+      if (!result.success) {
+        terminal.writeln(`\x1b[31mConnection failed: ${result.error}\x1b[0m`);
+        setStatus('Connection failed');
+        setConnected(false);
+        return;
+      }
+
+      const sessionId = result.sessionId;
+      terminal.writeln(`\x1b[32mConnected! Session: ${sessionId}\x1b[0m`);
+      terminal.writeln('');
+      setStatus(`Connected: ${profile.name}`);
+      setConnected(true);
+
+      // Listen for SSH output
+      window.nomad.ssh.onOutput(sessionId, (data: string) => {
+        console.log('[SSH] Output:', data.length, 'bytes');
+        terminal.write(data);
+      });
+
+      // Listen for errors
+      window.nomad.ssh.onError(sessionId, (error: string) => {
+        console.error('[SSH] Error:', error);
+        terminal.writeln(`\x1b[31m\nSSH Error: ${error}\x1b[0m`);
+      });
+
+      // Listen for close
+      window.nomad.ssh.onClosed(sessionId, () => {
+        console.log('[SSH] Connection closed');
+        terminal.writeln('\x1b[33m\nConnection closed\x1b[0m');
+        setStatus('Disconnected');
+        setConnected(false);
+      });
+
+      // Send terminal input to SSH
+      terminal.onData((data) => {
+        window.nomad.ssh.write(sessionId, data);
+      });
+
+      // Send resize events to SSH
+      terminal.onResize(({ cols, rows }) => {
+        window.nomad.ssh.resize(sessionId, cols, rows);
+      });
+
+      terminal.focus();
+    } catch (err: any) {
+      terminal.writeln(`\x1b[31mError: ${err.message}\x1b[0m`);
+      setStatus('Error');
+      setConnected(false);
+      console.error('[App] SSH error:', err);
     }
   };
 
-  const handleDisconnectSession = async (sessionId: string) => {
-    try {
-      // Disconnect SSH via Electron IPC
-      await window.nomad.ssh.disconnect(sessionId);
-
-      // Remove session from state
-      const remainingSessions = sessions.filter((s) => s.id !== sessionId);
-      setSessions(remainingSessions);
-
-      // Handle active session
-      if (activeSessionId === sessionId) {
-        if (remainingSessions.length > 0) {
-          // Switch to next available session
-          setActiveSessionId(remainingSessions[0].id);
-        } else {
-          // No sessions left, go to dashboard
-          setActiveSessionId(null);
-          setCurrentView('dashboard');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to disconnect session:', error);
-      // Remove from UI anyway
-      setSessions(sessions.filter((s) => s.id !== sessionId));
+  // Focus terminal when clicked
+  const handleTerminalClick = () => {
+    if (terminalRef.current) {
+      terminalRef.current.focus();
     }
   };
 
   return (
-    <>
-      {/* Master Password Modal - First Time or Locked */}
-      <MasterPasswordModal
-        open={isLocked}
-        mode={hasPassword ? 'unlock' : 'create'}
-        onSubmit={hasPassword ? handleUnlock : handleCreatePassword}
-      />
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: '#09090B',
+      color: '#E5E7EB',
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    }}>
+      {/* Status bar */}
+      <div style={{
+        height: '48px',
+        backgroundColor: '#18181B',
+        borderBottom: '1px solid #3F3F46',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 16px',
+        fontSize: '14px',
+        flexShrink: 0
+      }}>
+        <span style={{ fontWeight: 600, marginRight: '16px', color: '#E5E7EB' }}>NomadSSH</span>
+        <div style={{ 
+          width: '8px', 
+          height: '8px', 
+          borderRadius: '50%', 
+          backgroundColor: connected ? '#10B981' : '#71717A',
+          marginRight: '8px'
+        }} />
+        <span style={{ color: connected ? '#10B981' : '#71717A', fontSize: '13px' }}>{status}</span>
+      </div>
 
-      {/* Main App (only shown when unlocked) */}
-      {!isLocked && (
-        <>
-          <AppShell
-            profiles={profiles}
-            sessions={sessions}
-            activeSessionId={activeSessionId}
-            onConnectProfile={handleConnectProfile}
-            onDisconnectSession={handleDisconnectSession}
-            onNewProfile={() => setShowProfileManager(true)}
-            onShowKeys={() => setCurrentView('keys')}
-            onShowSettings={() => setCurrentView('settings')}
-            onShowSync={() => setCurrentView('sync')}
-            onShowTunnels={() => setCurrentView('tunnels')}
-            onShowWelcome={() => setCurrentView('dashboard')}
-            onShowAbout={() => setCurrentView('about')}
-            onShowCommandPalette={() => setShowCommandPalette(true)}
-            onShowSnippets={() => setCurrentView('snippets')}
-            onShowSFTP={() => setCurrentView('sftp')}
-            onShowHistory={() => setCurrentView('history')}
-          >
-            {currentView === 'dashboard' ? (
-              <Dashboard
-                profiles={profiles}
-                sessions={sessions}
-                onConnect={handleConnectProfile}
-                onCreateProfile={() => {
-                  setEditingProfile(undefined);
-                  setShowProfileManager(true);
+      {/* Main content area */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        overflow: 'hidden'
+      }}>
+        {/* Sidebar */}
+        <div style={{
+          width: '260px',
+          backgroundColor: '#18181B',
+          borderRight: '1px solid #3F3F46',
+          display: 'flex',
+          flexDirection: 'column',
+          flexShrink: 0
+        }}>
+          {/* Sidebar header */}
+          <div style={{
+            padding: '16px',
+            borderBottom: '1px solid #3F3F46'
+          }}>
+            <div style={{
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#71717A',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              PROFILES
+            </div>
+          </div>
+
+          {/* Profile list */}
+          <div style={{
+            flex: 1,
+            padding: '8px',
+            overflowY: 'auto'
+          }}>
+            {profiles.map((profile) => (
+              <button
+                key={profile.id}
+                onClick={() => {
+                  if (terminalRef.current) {
+                    terminalRef.current.clear();
+                    terminalRef.current.writeln('\x1b[1;36m=== NomadSSH - Connecting ===\x1b[0m');
+                    terminalRef.current.writeln('');
+                    connectSSH(terminalRef.current, profile);
+                  }
                 }}
-                onEditProfile={handleEditProfile}
-                onTogglePin={handleTogglePin}
-                onShowKeys={() => setCurrentView('keys')}
-                onShowTunnels={() => setCurrentView('tunnels')}
-                onShowSync={() => setCurrentView('sync')}
-                hostGroups={hostGroups}
-                onManageGroups={() => setShowManageGroups(true)}
-              />
-            ) : currentView === 'terminal' ? (
-              <TerminalArea sessions={sessions} activeSessionId={activeSessionId} />
-            ) : currentView === 'keys' ? (
-              <SSHKeyManager
-                keys={keys}
-                onImport={handleImportKey}
-                onGenerate={handleGenerateKey}
-                onDelete={handleDeleteKey}
-                onMoveToGroup={handleMoveKeyGroup}
-                onCreateGroup={handleCreateGroup}
-                onRenameGroup={handleRenameGroup}
-                onDeleteGroup={handleDeleteGroup}
-                onClose={() => setCurrentView('dashboard')}
-              />
-            ) : currentView === 'settings' ? (
-              <SettingsPanel onClose={() => setCurrentView('dashboard')} />
-            ) : currentView === 'sync' ? (
-              <CloudSyncSettings onClose={() => setCurrentView('dashboard')} />
-            ) : currentView === 'about' ? (
-              <AboutPanel onClose={() => setCurrentView('dashboard')} />
-            ) : currentView === 'snippets' ? (
-              <SnippetsManager
-                snippets={snippets}
-                onAdd={handleAddSnippet}
-                onEdit={handleEditSnippet}
-                onDelete={handleDeleteSnippet}
-                onRun={handleRunSnippet}
-                onPaste={handlePasteSnippet}
-                onClose={() => setCurrentView('dashboard')}
-              />
-            ) : currentView === 'tunnels' ? (
-              <TunnelManager
-                tunnels={tunnels}
-                onAdd={handleAddTunnel}
-                onEdit={handleEditTunnel}
-                onDelete={handleDeleteTunnel}
-                onToggle={handleToggleTunnel}
-                onClose={() => setCurrentView('dashboard')}
-              />
-            ) : currentView === 'sftp' ? (
-              <SFTPManager onClose={() => setCurrentView('dashboard')} />
-            ) : currentView === 'history' ? (
-              <CommandHistoryManager
-                history={commandHistory}
-                profiles={profiles}
-                onRerun={handleRerunCommand}
-                onExport={handleExportHistory}
-              />
-            ) : null}
-          </AppShell>
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: connected ? 'rgba(6, 182, 212, 0.1)' : 'transparent',
+                  border: connected ? '1px solid rgba(6, 182, 212, 0.3)' : '1px solid transparent',
+                  borderRadius: '8px',
+                  color: '#E5E7EB',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.15s ease',
+                  marginBottom: '6px'
+                }}
+                onMouseEnter={(e) => {
+                  if (!connected) {
+                    e.currentTarget.style.backgroundColor = '#27272A';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!connected) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
+              >
+                <span style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: connected ? '#10B981' : '#71717A',
+                  flexShrink: 0
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    color: '#E5E7EB'
+                  }}>
+                    {profile.name}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#71717A',
+                    marginTop: '4px'
+                  }}>
+                    {profile.host}:{profile.port}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
 
-          <ProfileManager
-            open={showProfileManager}
-            onClose={handleCloseProfileManager}
-            onSave={handleSaveProfile}
-            profile={editingProfile}
-            keys={keys}
-            groups={hostGroups}
-          />
-
-          <ManageHostGroupsModal
-            open={showManageGroups}
-            onClose={() => setShowManageGroups(false)}
-            groups={hostGroups}
-            onCreateGroup={handleCreateHostGroup}
-            onRenameGroup={handleRenameHostGroup}
-            onDeleteGroup={handleDeleteHostGroup}
-          />
-
-          <CommandPalette
-            open={showCommandPalette}
-            onClose={() => setShowCommandPalette(false)}
-            profiles={profiles}
-            onConnectProfile={handleConnectProfile}
-            onEditProfile={handleEditProfile}
-            onTogglePin={handleTogglePin}
-            onNewProfile={() => setShowProfileManager(true)}
-            onImportKey={() => {
-              setCurrentView('keys');
-              // TODO: Auto-open import modal
+          {/* Add profile button */}
+          <div style={{
+            padding: '12px',
+            borderTop: '1px solid #3F3F46'
+          }}>
+            <button style={{
+              width: '100%',
+              padding: '12px',
+              backgroundColor: '#06B6D4',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#FFF',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'background-color 0.15s ease'
             }}
-            onGenerateKey={() => {
-              setCurrentView('keys');
-              // TODO: Auto-open generate modal
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0891B2';
             }}
-            onShowKeys={() => setCurrentView('keys')}
-            onShowSettings={() => setCurrentView('settings')}
-            onShowSync={() => setCurrentView('sync')}
-            onShowTunnels={() => setCurrentView('tunnels')}
-            onShowSFTP={() => setCurrentView('sftp')}
-            onShowSnippets={() => setCurrentView('snippets')}
-            onShowHistory={() => setCurrentView('history')}
-            onLock={() => setIsLocked(true)}
-            onChangeTheme={handleChangeTheme}
-          />
-        </>
-      )}
-    </>
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#06B6D4';
+            }}>
+              <span style={{ fontSize: '18px', fontWeight: 700 }}>+</span>
+              <span>Add Profile</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Terminal area */}
+        <div 
+          ref={containerRef}
+          onClick={handleTerminalClick}
+          style={{
+            flex: 1,
+            backgroundColor: '#000',
+            cursor: 'text',
+            overflow: 'hidden'
+          }}
+        />
+      </div>
+    </div>
   );
 }
 

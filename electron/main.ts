@@ -22,6 +22,8 @@ function createWindow() {
   });
 
   if (process.env.NODE_ENV === 'development') {
+    // Load test page for debugging
+    // mainWindow.loadFile(path.join(__dirname, '../test-terminal.html'));
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {

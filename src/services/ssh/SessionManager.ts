@@ -172,20 +172,19 @@ export class SessionManager extends EventEmitter {
    */
   closeSession(sessionId: string): boolean {
     const connection = this.sessions.get(sessionId);
-    if// Keep buffer for a while? No, clear it for now to avoid leaks
-      // Actually, we might want to keep it if the user wants to see why it closed
-      // But for now let's clear it after a delay
-      setTimeout(() => {
-        this.sessionBuffers.delete(sessionId);
-      }, 60000); // Keep history for 1 minute after close
-      
-       (!connection) {
+    if (!connection) {
       return false;
     }
 
     try {
       connection.disconnect();
       this.sessions.delete(sessionId);
+      
+      // Keep buffer for a while to allow viewing history after close
+      setTimeout(() => {
+        this.sessionBuffers.delete(sessionId);
+      }, 60000); // Keep history for 1 minute after close
+
       this.emit('session:closed', sessionId);
       return true;
     } catch (error) {
@@ -209,6 +208,7 @@ export class SessionManager extends EventEmitter {
     }
 
     this.sessions.clear();
+    this.sessionBuffers.clear();
   }
 
   /**
@@ -222,6 +222,13 @@ export class SessionManager extends EventEmitter {
    * Get session count
    */
   getSessionCount(): number {
+    return this.sessions.size;
+  }
+
+  /**
+   * Setup event forwarding from connection to session manager
+   */
+  private setupConnectionEvents(sessionId: string, connection: SSHConnection): void {
     const addToBuffer = (type: 'data' | 'log', content: string) => {
       const buffer = this.sessionBuffers.get(sessionId);
       if (buffer) {
@@ -272,13 +279,6 @@ export class SessionManager extends EventEmitter {
     // Forward log event
     connection.on('log', (message: string) => {
       addToBuffer('log', message);
-    // Forward status event
-    connection.on('status', (status: string) => {
-      this.emit('session:status', sessionId, status);
-    });
-
-    // Forward log event
-    connection.on('log', (message: string) => {
       this.emit('session:log', sessionId, message);
     });
   }

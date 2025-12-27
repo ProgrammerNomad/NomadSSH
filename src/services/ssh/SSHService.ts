@@ -211,7 +211,11 @@ export class SSHConnection extends EventEmitter {
 
       // Request shell from SSH server
       console.log('[SSHService] Requesting shell from server');
-      this.client.shell((err, stream) => {
+      
+      // Explicitly request PTY with xterm-256color
+      const window = { rows: 24, cols: 80, height: 0, width: 0, term: 'xterm-256color' };
+      
+      this.client.shell(window, (err, stream) => {
         if (err) {
           console.error('[SSHService] ===== SHELL REQUEST FAILED =====', err);
           this.log(`Shell request error: ${err.message}`);
@@ -223,13 +227,15 @@ export class SSHConnection extends EventEmitter {
         this.log('Interactive shell established');
         this.stream = stream;
 
-        // Set terminal type for remote shell
-        this.stream.setWindow(24, 80, 0, 0);
-        console.log('[SSHService] Set initial window size: 80x24');
-
         // Stream SSH output directly to renderer (xterm.js)
         stream.on('data', (data: Buffer) => {
           console.log('[SSHService] Received shell data:', data.length, 'bytes');
+          this.emit('data', data.toString());
+        });
+
+        // Stream SSH stderr to renderer
+        stream.stderr.on('data', (data: Buffer) => {
+          console.log('[SSHService] Received shell stderr:', data.length, 'bytes');
           this.emit('data', data.toString());
         });
 

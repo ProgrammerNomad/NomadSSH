@@ -1,22 +1,21 @@
+/* Cyber Blue + Zinc Dark Theme */
+@import '@xterm/xterm/css/xterm.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Import xterm CSS globally */
-@import '@xterm/xterm/css/xterm.css';
+* {
+  box-sizing: border-box;
+}
 
-/* Cyber Blue + Zinc Dark Theme */
 body {
   margin: 0;
   padding: 0;
-  background-color: #09090B; /* zinc-950 */
-  color: #E5E7EB; /* gray-200 */
+  background-color: #09090B;
+  color: #E5E7EB;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow: hidden;
-}
-
-* {
-  box-sizing: border-box;
 }
 
 #root {
