@@ -9,6 +9,7 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { TopBar } from './components/layout/TopBar';
 import { Sidebar } from './components/layout/SidebarWithGroups';
+import { Dashboard } from './components/dashboard';
 import { ManageCategoriesModal, Category } from './components/categories';
 import { ManageKeysModal, SSHKey } from './components/keys';
 import { ProfileModal, ProfilesManager } from './components/profiles';
@@ -29,11 +30,12 @@ function App() {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const [status, setStatus] = useState('Initializing...');
+  const [status, setStatus] = useState('Ready');
   const [connected, setConnected] = useState(false);
   const [activeProfileId, setActiveProfileId] = useState<string | undefined>();
   
   // View state
+  const [showDashboard, setShowDashboard] = useState(true);
   const [showProfilesManager, setShowProfilesManager] = useState(false);
   
   // Modal states
@@ -159,17 +161,12 @@ function App() {
       // Focus terminal immediately
       terminal.focus();
       
-      // Auto-connect to first profile if available
-      if (profiles.length > 0) {
-        setStatus('Connecting to SSH...');
-        connectSSH(terminal, profiles[0]);
-      } else {
-        setStatus('No connections - Add one to get started');
-        terminal.writeln('\x1b[1;36m=== Welcome to NomadSSH ===\x1b[0m');
-        terminal.writeln('');
-        terminal.writeln('Click the "+ New Connection" button in the sidebar to add your first SSH connection.');
-        terminal.writeln('');
-      }
+      // Show welcome message (no auto-connect)
+      setStatus('Ready');
+      terminal.writeln('\x1b[1;36m=== Welcome to NomadSSH ===\x1b[0m');
+      terminal.writeln('');
+      terminal.writeln('Select a profile from the sidebar to connect.');
+      terminal.writeln('');
     });
 
     // Handle window resize
@@ -260,6 +257,7 @@ function App() {
   };
 
   const handleProfileSelect = (profile: Profile) => {
+    setShowDashboard(false); // Hide dashboard, show terminal
     if (terminalRef.current) {
       terminalRef.current.clear();
       terminalRef.current.writeln('\x1b[1;36m=== NomadSSH - Connecting ===\x1b[0m');
@@ -368,15 +366,28 @@ function App() {
           onDeleteProfile={handleDeleteProfile}
         />
 
-        {/* Terminal area */}
+        {/* Main content area - Dashboard or Terminal */}
+        {showDashboard && (
+          <Dashboard
+            profiles={profiles}
+            categories={categories}
+            onProfileConnect={handleProfileSelect}
+            onAddProfile={handleAddProfile}
+            onManageProfiles={() => setShowProfilesManager(true)}
+          />
+        )}
+        
+        {/* Terminal container - always rendered but hidden when dashboard is shown */}
         <div 
           ref={containerRef}
           onClick={handleTerminalClick}
           style={{
             flex: 1,
+            width: '100%',
             backgroundColor: '#000',
             cursor: 'text',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            display: showDashboard ? 'none' : 'block'
           }}
         />
       </div>

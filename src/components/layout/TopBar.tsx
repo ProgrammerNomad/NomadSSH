@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import logoSvg from '../../../assets/logo.svg';
 
 interface TopBarProps {
@@ -22,6 +22,20 @@ export function TopBar({
 }: TopBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle Ctrl+K to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -106,25 +120,28 @@ export function TopBar({
         </span>
       </div>
 
-      {/* Search bar */}
+      {/* Spacer for tabs - they will go here */}
+      <div style={{ flex: 1 }} />
+
+      {/* Compact search */}
       <div style={{
-        flex: 1,
-        maxWidth: '400px',
+        width: '240px',
         position: 'relative'
       }}>
         <input
+          ref={searchInputRef}
           type="text"
-          placeholder="Search profiles, commands..."
+          placeholder="Search... (Ctrl+K)"
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
           style={{
             width: '100%',
-            padding: '8px 12px 8px 36px',
+            padding: '7px 12px 7px 32px',
             backgroundColor: '#27272A',
             border: '1px solid #3F3F46',
-            borderRadius: '8px',
+            borderRadius: '6px',
             color: '#E5E7EB',
-            fontSize: '14px',
+            fontSize: '13px',
             outline: 'none',
             transition: 'all 0.15s ease'
           }}
@@ -140,11 +157,11 @@ export function TopBar({
         <svg 
           style={{
             position: 'absolute',
-            left: '12px',
+            left: '10px',
             top: '50%',
             transform: 'translateY(-50%)',
-            width: '16px',
-            height: '16px',
+            width: '14px',
+            height: '14px',
             color: '#71717A',
             pointerEvents: 'none'
           }}
@@ -155,9 +172,6 @@ export function TopBar({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
       </div>
-
-      {/* Spacer */}
-      <div style={{ flex: 1 }} />
 
       {/* Settings menu */}
       <div style={{ position: 'relative' }}>
