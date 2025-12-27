@@ -1,12 +1,13 @@
 /**
- * STEP 2: ADD SIDEBAR WITH PROFILES
+ * STEP 3: ADD TOP BAR WITH SEARCH AND SETTINGS
  * 
- * Adding sidebar with profile list, but keeping same working terminal code.
+ * Adding proper top bar with logo, search, and settings menu.
  */
 
 import React, { useRef, useEffect, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import logoSvg from '../assets/logo.svg';
 
 interface Profile {
   id: string;
@@ -24,6 +25,8 @@ function App() {
   const fitAddonRef = useRef<FitAddon | null>(null);
   const [status, setStatus] = useState('Initializing...');
   const [connected, setConnected] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [profiles] = useState<Profile[]>([
     {
       id: 'paddockavenue',
@@ -202,26 +205,259 @@ function App() {
       color: '#E5E7EB',
       fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      {/* Status bar */}
+      {/* Top bar */}
       <div style={{
-        height: '48px',
+        height: '56px',
         backgroundColor: '#18181B',
         borderBottom: '1px solid #3F3F46',
         display: 'flex',
         alignItems: 'center',
         padding: '0 16px',
-        fontSize: '14px',
+        gap: '16px',
         flexShrink: 0
       }}>
-        <span style={{ fontWeight: 600, marginRight: '16px', color: '#E5E7EB' }}>NomadSSH</span>
-        <div style={{ 
-          width: '8px', 
-          height: '8px', 
-          borderRadius: '50%', 
-          backgroundColor: connected ? '#10B981' : '#71717A',
+        {/* Logo and app name */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
           marginRight: '8px'
-        }} />
-        <span style={{ color: connected ? '#10B981' : '#71717A', fontSize: '13px' }}>{status}</span>
+        }}>
+          <img 
+            src={logoSvg} 
+            alt="NomadSSH" 
+            style={{ 
+              width: '28px', 
+              height: '28px',
+              objectFit: 'contain'
+            }} 
+          />
+          <span style={{ 
+            fontWeight: 700, 
+            fontSize: '16px',
+            color: '#E5E7EB',
+            letterSpacing: '-0.02em'
+          }}>
+            NomadSSH
+          </span>
+        </div>
+
+        {/* Connection status */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '6px 12px',
+          backgroundColor: '#27272A',
+          borderRadius: '6px',
+          fontSize: '13px'
+        }}>
+          <div style={{ 
+            width: '6px', 
+            height: '6px', 
+            borderRadius: '50%', 
+            backgroundColor: connected ? '#10B981' : '#71717A'
+          }} />
+          <span style={{ color: connected ? '#10B981' : '#A1A1AA' }}>
+            {status}
+          </span>
+        </div>
+
+        {/* Search bar */}
+        <div style={{
+          flex: 1,
+          maxWidth: '400px',
+          position: 'relative'
+        }}>
+          <input
+            type="text"
+            placeholder="Search profiles, commands..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px 8px 36px',
+              backgroundColor: '#27272A',
+              border: '1px solid #3F3F46',
+              borderRadius: '8px',
+              color: '#E5E7EB',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'all 0.15s ease'
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = '#06B6D4';
+              e.currentTarget.style.backgroundColor = '#000';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = '#3F3F46';
+              e.currentTarget.style.backgroundColor = '#27272A';
+            }}
+          />
+          <svg 
+            style={{
+              position: 'absolute',
+              left: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '16px',
+              height: '16px',
+              color: '#71717A',
+              pointerEvents: 'none'
+            }}
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Settings menu */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+            style={{
+              width: '36px',
+              height: '36px',
+              backgroundColor: showSettingsMenu ? '#27272A' : 'transparent',
+              border: '1px solid',
+              borderColor: showSettingsMenu ? '#3F3F46' : 'transparent',
+              borderRadius: '8px',
+              color: '#E5E7EB',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!showSettingsMenu) {
+                e.currentTarget.style.backgroundColor = '#27272A';
+                e.currentTarget.style.borderColor = '#3F3F46';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!showSettingsMenu) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = 'transparent';
+              }
+            }}
+          >
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="5" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="12" cy="19" r="2" />
+            </svg>
+          </button>
+
+          {/* Dropdown menu */}
+          {showSettingsMenu && (
+            <div style={{
+              position: 'absolute',
+              top: '44px',
+              right: 0,
+              width: '220px',
+              backgroundColor: '#18181B',
+              border: '1px solid #3F3F46',
+              borderRadius: '8px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
+              overflow: 'hidden',
+              zIndex: 1000
+            }}>
+              <button
+                onClick={() => {
+                  setShowSettingsMenu(false);
+                  alert('Settings coming soon!');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#E5E7EB',
+                  fontSize: '14px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'background-color 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#27272A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Settings
+              </button>
+              <button
+                onClick={() => {
+                  setShowSettingsMenu(false);
+                  alert('Preferences coming soon!');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#E5E7EB',
+                  fontSize: '14px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'background-color 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#27272A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+                Preferences
+              </button>
+              <div style={{
+                height: '1px',
+                backgroundColor: '#3F3F46',
+                margin: '4px 0'
+              }} />
+              <button
+                onClick={() => {
+                  setShowSettingsMenu(false);
+                  alert('About NomadSSH\n\nVersion 1.0.0\nBased on Tabby Terminal');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#E5E7EB',
+                  fontSize: '14px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'background-color 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#27272A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                About
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main content area */}
