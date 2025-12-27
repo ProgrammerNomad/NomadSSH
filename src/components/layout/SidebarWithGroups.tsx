@@ -633,6 +633,44 @@ export function Sidebar({
             )}
           </div>
         )}
+
+          {/* New Connection button inside Connections section */}
+          {activeView === 'connections' && (
+            <div style={{ padding: '0 12px 8px 12px' }}>
+              <button
+                onClick={onAddProfile}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  backgroundColor: 'transparent',
+                  border: '1px solid #06B6D4',
+                  borderRadius: '6px',
+                  color: '#06B6D4',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#06B6D4';
+                  e.currentTarget.style.color = '#09090B';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#06B6D4';
+                }}
+              >
+                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                New Connection
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Snippets menu item */}
@@ -934,41 +972,8 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Add profile button */}
-      <div style={{
-        padding: '12px',
-        borderTop: '1px solid #3F3F46'
-      }}>
-        <button 
-          onClick={onAddProfile}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: '#06B6D4',
-            border: 'none',
-            borderRadius: '8px',
-            color: '#FFF',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            transition: 'background-color 0.15s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#0891B2';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#06B6D4';
-          }}
-        >
-          <span style={{ fontSize: '18px', fontWeight: 700 }}>+</span>
-          <span>New Connection</span>
-        </button>
-        
-        {/* Toggle collapse button */}
+      {/* Bottom: Collapse button only */}
+      <div style={{ padding: '12px', borderTop: '1px solid #3F3F46' }}>
         <button
           onClick={onToggleCollapse}
           title="Collapse sidebar"

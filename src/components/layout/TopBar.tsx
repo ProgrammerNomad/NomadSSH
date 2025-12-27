@@ -28,6 +28,7 @@ export function TopBar({
   const [searchQuery, setSearchQuery] = useState('');
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Handle Ctrl+K to focus search
   useEffect(() => {
@@ -41,6 +42,20 @@ export function TopBar({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowSettingsMenu(false);
+      }
+    };
+
+    if (showSettingsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showSettingsMenu]);
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -105,12 +120,14 @@ export function TopBar({
       </div>
 
       {/* Session tabs - will show active SSH connections */}
-      <SessionTabs
-        tabs={tabs}
-        activeTabId={activeTabId}
-        onTabClick={onTabClick}
-        onTabClose={onTabClose}
-      />
+      <div style={{ flex: 1 }}>
+        <SessionTabs
+          tabs={tabs}
+          activeTabId={activeTabId}
+          onTabClick={onTabClick}
+          onTabClose={onTabClose}
+        />
+      </div>
 
       {/* Compact search */}
       <div style={{
@@ -163,7 +180,7 @@ export function TopBar({
       </div>
 
       {/* Settings menu */}
-      <div style={{ position: 'relative' }}>
+      <div ref={menuRef} style={{ position: 'relative' }}>
         <button
           onClick={() => setShowSettingsMenu(!showSettingsMenu)}
           style={{
