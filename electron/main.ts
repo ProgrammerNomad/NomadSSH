@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { registerSSHHandlers, cleanupSSHHandlers } from './ipc/sshIPC';
 import { registerStorageHandlers } from './ipc/storageIPC';
@@ -35,10 +35,36 @@ function createWindow() {
   });
 }
 
+// Window control handlers
+function registerWindowHandlers() {
+  ipcMain.on('window:minimize', () => {
+    if (mainWindow) mainWindow.minimize();
+  });
+
+  ipcMain.on('window:maximize', () => {
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
+    }
+  });
+
+  ipcMain.on('window:close', () => {
+    if (mainWindow) mainWindow.close();
+  });
+
+  ipcMain.handle('window:is-maximized', () => {
+    return mainWindow ? mainWindow.isMaximized() : false;
+  });
+}
+
 // Register SSH IPC handlers before app is ready
 app.whenReady().then(() => {
   registerSSHHandlers();
   registerStorageHandlers();
+  registerWindowHandlers();
   createWindow();
 });
 

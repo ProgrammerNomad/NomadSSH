@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import logoSvg from '../../../assets/logo.svg';
 import { SessionTabs, Tab } from './SessionTabs';
+import WindowControls from './WindowControls';
 
 interface TopBarProps {
   tabs: Tab[];
@@ -89,17 +90,19 @@ export function TopBar({
       borderBottom: '1px solid #3F3F46',
       display: 'flex',
       alignItems: 'center',
-      padding: '0 16px',
+      padding: '0 0 0 16px',
       gap: '16px',
-      flexShrink: 0
-    }}>
+      flexShrink: 0,
+      WebkitAppRegion: 'drag'
+    } as React.CSSProperties}>
       {/* Logo and app name */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        marginRight: '8px'
-      }}>
+        marginRight: '8px',
+        WebkitAppRegion: 'no-drag'
+      } as React.CSSProperties}>
         <img 
           src={logoSvg} 
           alt="NomadSSH" 
@@ -120,7 +123,7 @@ export function TopBar({
       </div>
 
       {/* Session tabs - will show active SSH connections */}
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <SessionTabs
           tabs={tabs}
           activeTabId={activeTabId}
@@ -132,8 +135,9 @@ export function TopBar({
       {/* Compact search */}
       <div style={{
         width: '240px',
-        position: 'relative'
-      }}>
+        position: 'relative',
+        WebkitAppRegion: 'no-drag'
+      } as React.CSSProperties}>
         <input
           ref={searchInputRef}
           type="text"
@@ -180,7 +184,7 @@ export function TopBar({
       </div>
 
       {/* Settings menu */}
-      <div ref={menuRef} style={{ position: 'relative' }}>
+      <div ref={menuRef} style={{ position: 'relative', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <button
           onClick={() => setShowSettingsMenu(!showSettingsMenu)}
           style={{
@@ -334,6 +338,9 @@ export function TopBar({
           </div>
         )}
       </div>
+
+      {/* Window Controls */}
+      <WindowControls />
     </div>
   );
 }

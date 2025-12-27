@@ -200,6 +200,13 @@ contextBridge.exposeInMainWorld('nomad', {
     saveHostGroups: (groups: string[]) => ipcRenderer.invoke('storage:save-host-groups', groups),
     getPath: () => ipcRenderer.invoke('storage:get-path'),
   },
+
+  window: {
+    minimize: () => ipcRenderer.send('window:minimize'),
+    maximize: () => ipcRenderer.send('window:maximize'),
+    close: () => ipcRenderer.send('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+  },
 });
 
 // Register window with main process

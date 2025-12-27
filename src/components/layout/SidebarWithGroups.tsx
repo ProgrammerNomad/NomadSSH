@@ -336,36 +336,31 @@ export function Sidebar({
           transition: 'all 0.15s ease'
         }}>
           {/* Connections menu item */}
-          <button
-            onClick={() => setActiveView('connections')}
+          <div
             style={{
               width: '100%',
               padding: '12px 16px',
               backgroundColor: 'transparent',
-              border: 'none',
               borderRadius: '8px 8px 0 0',
               color: '#D4D4D8',
               fontSize: '14px',
               fontWeight: 600,
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              transition: 'all 0.15s ease',
-              textAlign: 'left'
-            }}
-            onMouseEnter={(e) => {
-              if (activeView !== 'connections') {
-                e.currentTarget.style.backgroundColor = '#27272A';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (activeView !== 'connections') {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }
+              transition: 'all 0.15s ease'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div 
+              onClick={() => setActiveView('connections')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '10px',
+                flex: 1,
+                cursor: 'pointer'
+              }}
+            >
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -397,7 +392,7 @@ export function Sidebar({
             >
               Groups
             </button>
-          </button>
+          </div>
 
           {/* Profile list - sub-items under Connections */}
           {activeView === 'connections' && (

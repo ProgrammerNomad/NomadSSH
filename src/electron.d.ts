@@ -11,6 +11,12 @@ declare global {
         onClosed: (sessionId: string, callback: () => void) => void;
         getHistory: (sessionId: string) => Promise<any>;
       };
+      window: {
+        minimize: () => void;
+        maximize: () => void;
+        close: () => void;
+        isMaximized: () => Promise<boolean>;
+      };
     };
   }
 }
