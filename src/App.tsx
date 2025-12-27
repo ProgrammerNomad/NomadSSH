@@ -4,7 +4,7 @@
  * Using proper component structure for maintainability.
  */
 
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { TopBar } from './components/layout/TopBar';
@@ -13,6 +13,7 @@ import { Dashboard } from './components/dashboard';
 import { ManageCategoriesModal, Category } from './components/categories';
 import { ManageKeysModal, SSHKey } from './components/keys';
 import { ProfileModal, ProfilesManager } from './components/profiles';
+import { Tab, TabStatus } from './components/layout/SessionTabs';
 
 interface Profile {
   id: string;
@@ -27,12 +28,18 @@ interface Profile {
 }
 
 function App() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const terminalRef = useRef<Terminal | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
+  // Multiple terminal instances - one per tab
+  const terminalsRef = useRef<Map<string, Terminal>>(new Map());
+  const containersRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const fitAddonsRef = useRef<Map<string, FitAddon>>(new Map());
+  
   const [status, setStatus] = useState('Ready');
   const [connected, setConnected] = useState(false);
   const [activeProfileId, setActiveProfileId] = useState<string | undefined>();
+  
+  // Tab management
+  const [tabs, setTabs] = useState<Tab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>('');
   
   // View state
   const [showDashboard, setShowDashboard] = useState(true);
@@ -100,16 +107,131 @@ function App() {
     localStorage.setItem('nomadssh_profiles', JSON.stringify(profiles));
   }, [profiles]);
 
+  // Handle window resize for all terminals
   useEffect(() => {
-    // Prevent double initialization (React StrictMode runs effects twice)
-    if (terminalRef.current) {
-      console.log('[App] Terminal already initialized, skipping...');
-      return;
+    const handleResize = () => {
+      fitAddonsRef.current.forEach((fitAddon) => {
+        fitAddon.fit();
+      });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      
+      // Cleanup all terminals on unmount
+      terminalsRef.current.forEach((terminal) => {
+        terminal.dispose();
+      });
+      terminalsRef.current.clear();
+      containersRef.current.clear();
+      fitAddonsRef.current.clear();
+    };
+  }, []);
+
+  const connectSSHWithTab = async (terminal: Terminal, profile: Profile, tabId: string) => {
+    terminal.clear();
+    
+    terminal.writeln(`\x1b[36mConnecting to ${profile.host}:${profile.port}...\x1b[0m`);
+    terminal.writeln(`\x1b[36mUsername: ${profile.username}\x1b[0m`);
+    terminal.writeln('');
+
+    setActiveProfileId(profile.id);
+
+    try {
+      const result = await window.nomad.ssh.connect(profile, []);
+
+      if (!result.success) {
+        terminal.writeln(`\x1b[31mConnection failed: ${result.error}\x1b[0m`);
+        // Update tab status to error
+        setTabs(prev => prev.map(tab => 
+          tab.id === tabId ? { ...tab, status: 'error' as TabStatus } : tab
+        ));
+        return;
+      }
+
+      const sessionId = result.sessionId;
+      terminal.writeln(`\x1b[32mConnected! Session: ${sessionId}\x1b[0m`);
+      terminal.writeln('');
+      
+      // Update tab status to connected
+      setTabs(prev => prev.map(tab => 
+        tab.id === tabId ? { ...tab, status: 'connected' as TabStatus } : tab
+      ));
+
+      // Listen for SSH output
+      window.nomad.ssh.onOutput(sessionId, (data: string) => {
+        terminal.write(data);
+      });
+
+      // Listen for errors
+      window.nomad.ssh.onError(sessionId, (error: string) => {
+        terminal.writeln(`\x1b[31m\nSSH Error: ${error}\x1b[0m`);
+        setTabs(prev => prev.map(tab => 
+          tab.id === tabId ? { ...tab, status: 'error' as TabStatus } : tab
+        ));
+      });
+
+      // Listen for close
+      window.nomad.ssh.onClosed(sessionId, () => {
+        terminal.writeln('\x1b[33m\nConnection closed\x1b[0m');
+        setTabs(prev => prev.map(tab => 
+          tab.id === tabId ? { ...tab, status: 'disconnected' as TabStatus } : tab
+        ));
+      });
+
+      // Send terminal input to SSH
+      terminal.onData((data) => {
+        window.nomad.ssh.write(sessionId, data);
+      });
+
+      // Send resize events to SSH
+      terminal.onResize(({ cols, rows }) => {
+        window.nomad.ssh.resize(sessionId, cols, rows);
+      });
+
+      terminal.focus();
+    } catch (err: any) {
+      terminal.writeln(`\x1b[31mError: ${err.message}\x1b[0m`);
+      setTabs(prev => prev.map(tab => 
+        tab.id === tabId ? { ...tab, status: 'error' as TabStatus } : tab
+      ));
+      console.error('[App] SSH error:', err);
     }
+  };
 
-    if (!containerRef.current) return;
-
-    console.log('[App] Starting terminal initialization...');
+  const handleProfileSelect = (profile: Profile) => {
+    // Generate unique tab ID
+    const tabId = `tab_${Date.now()}_${profile.id}`;
+    
+    // Create new tab
+    const newTab: Tab = {
+      id: tabId,
+      profileName: profile.name,
+      status: 'connecting' as TabStatus
+    };
+    
+    // Add tab and set as active
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(tabId);
+    setShowDashboard(false);
+    
+    // Create terminal container
+    const container = document.createElement('div');
+    container.id = `terminal-${tabId}`;
+    container.style.width = '100%';
+    container.style.height = '100%';
+    container.style.display = 'block';
+    
+    // Find terminal area and append
+    const terminalArea = document.getElementById('terminal-area');
+    if (terminalArea) {
+      terminalArea.appendChild(container);
+    }
+    
+    // Store container ref
+    containersRef.current.set(tabId, container);
     
     // Create terminal instance
     const terminal = new Terminal({
@@ -130,139 +252,84 @@ function App() {
         white: '#E5E7EB',
       }
     });
-
+    
     // Create fit addon
     const fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
-
+    
     // Store refs
-    terminalRef.current = terminal;
-    fitAddonRef.current = fitAddon;
+    terminalsRef.current.set(tabId, terminal);
+    fitAddonsRef.current.set(tabId, fitAddon);
+    
+    // Open terminal
+    terminal.open(container);
+    fitAddon.fit();
+    terminal.focus();
+    
+    // Show welcome message
+    terminal.writeln('\x1b[1;36m=== NomadSSH - Connecting ===\x1b[0m');
+    terminal.writeln('');
+    
+    // Connect SSH
+    connectSSHWithTab(terminal, profile, tabId);
+  };
 
-    // Wait for next frame to ensure container has dimensions
-    requestAnimationFrame(() => {
-      // Check if terminal was disposed or replaced before this frame ran
-      if (terminalRef.current !== terminal) {
-        console.log('[App] Terminal instance disposed or replaced, skipping open...');
-        return;
-      }
-
-      if (!containerRef.current) return;
-
-      // Clear container just in case
-      containerRef.current.innerHTML = '';
-
-      console.log('[App] Opening terminal...');
-      terminal.open(containerRef.current);
-      fitAddon.fit();
-
-      console.log('[App] Terminal opened, cols:', terminal.cols, 'rows:', terminal.rows);
-
-      // Focus terminal immediately
-      terminal.focus();
-      
-      // Show welcome message (no auto-connect)
-      setStatus('Ready');
-      terminal.writeln('\x1b[1;36m=== Welcome to NomadSSH ===\x1b[0m');
-      terminal.writeln('');
-      terminal.writeln('Select a profile from the sidebar to connect.');
-      terminal.writeln('');
+  const handleTabClick = (tabId: string) => {
+    // Switch to tab
+    setActiveTabId(tabId);
+    
+    // Hide all terminal containers
+    containersRef.current.forEach((container, id) => {
+      container.style.display = id === tabId ? 'block' : 'none';
     });
-
-    // Handle window resize
-    const handleResize = () => {
-      if (fitAddon && terminal) {
+    
+    // Focus the active terminal
+    const terminal = terminalsRef.current.get(tabId);
+    if (terminal) {
+      terminal.focus();
+      const fitAddon = fitAddonsRef.current.get(tabId);
+      if (fitAddon) {
         fitAddon.fit();
       }
-    };
-    window.addEventListener('resize', handleResize);
-
-    // Cleanup
-    return () => {
-      console.log('[App] Cleaning up terminal...');
-      window.removeEventListener('resize', handleResize);
-      if (terminalRef.current) {
-        terminalRef.current.dispose();
-        terminalRef.current = null;
-      }
-    };
-  }, []);
-
-  const connectSSH = async (terminal: Terminal, profile: Profile) => {
-    // Clear terminal for fresh start
-    terminal.clear();
-    
-    terminal.writeln(`\x1b[36mConnecting to ${profile.host}:${profile.port}...\x1b[0m`);
-    terminal.writeln(`\x1b[36mUsername: ${profile.username}\x1b[0m`);
-    terminal.writeln('');
-
-    // Track active profile
-    setActiveProfileId(profile.id);
-
-    try {
-      const result = await window.nomad.ssh.connect(profile, []);
-
-      if (!result.success) {
-        terminal.writeln(`\x1b[31mConnection failed: ${result.error}\x1b[0m`);
-        setStatus('Connection failed');
-        setConnected(false);
-        return;
-      }
-
-      const sessionId = result.sessionId;
-      terminal.writeln(`\x1b[32mConnected! Session: ${sessionId}\x1b[0m`);
-      terminal.writeln('');
-      setStatus(`Connected: ${profile.name}`);
-      setConnected(true);
-
-      // Listen for SSH output
-      window.nomad.ssh.onOutput(sessionId, (data: string) => {
-        console.log('[SSH] Output:', data.length, 'bytes');
-        terminal.write(data);
-      });
-
-      // Listen for errors
-      window.nomad.ssh.onError(sessionId, (error: string) => {
-        console.error('[SSH] Error:', error);
-        terminal.writeln(`\x1b[31m\nSSH Error: ${error}\x1b[0m`);
-      });
-
-      // Listen for close
-      window.nomad.ssh.onClosed(sessionId, () => {
-        console.log('[SSH] Connection closed');
-        terminal.writeln('\x1b[33m\nConnection closed\x1b[0m');
-        setStatus('Disconnected');
-        setConnected(false);
-        setActiveProfileId(undefined);
-      });
-
-      // Send terminal input to SSH
-      terminal.onData((data) => {
-        window.nomad.ssh.write(sessionId, data);
-      });
-
-      // Send resize events to SSH
-      terminal.onResize(({ cols, rows }) => {
-        window.nomad.ssh.resize(sessionId, cols, rows);
-      });
-
-      terminal.focus();
-    } catch (err: any) {
-      terminal.writeln(`\x1b[31mError: ${err.message}\x1b[0m`);
-      setStatus('Error');
-      setConnected(false);
-      setActiveProfileId(undefined);
-      console.error('[App] SSH error:', err);
     }
   };
 
-  const handleProfileSelect = (profile: Profile) => {
-    setShowDashboard(false); // Hide dashboard, show terminal
-    if (terminalRef.current) {
-      terminalRef.current.clear();
-      terminalRef.current.writeln('\x1b[1;36m=== NomadSSH - Connecting ===\x1b[0m');
-      terminalRef.current.writeln('');
-      connectSSH(terminalRef.current, profile);
+  const handleTabClose = (tabId: string) => {
+    // Get terminal and container
+    const terminal = terminalsRef.current.get(tabId);
+    const container = containersRef.current.get(tabId);
+    
+    // Dispose terminal
+    if (terminal) {
+      terminal.dispose();
+      terminalsRef.current.delete(tabId);
+    }
+    
+    // Remove container
+    if (container && container.parentNode) {
+      container.parentNode.removeChild(container);
+      containersRef.current.delete(tabId);
+    }
+    
+    // Remove fit addon
+    fitAddonsRef.current.delete(tabId);
+    
+    // Remove tab
+    setTabs(prev => prev.filter(tab => tab.id !== tabId));
+    
+    // If closing active tab, switch to another or show dashboard
+    if (activeTabId === tabId) {
+      const remainingTabs = tabs.filter(tab => tab.id !== tabId);
+      if (remainingTabs.length > 0) {
+        // Switch to last tab
+        const newActiveId = remainingTabs[remainingTabs.length - 1].id;
+        setActiveTabId(newActiveId);
+        handleTabClick(newActiveId);
+      } else {
+        // No tabs left, show dashboard
+        setShowDashboard(true);
+        setActiveTabId('');
+      }
     }
   };
 
@@ -320,13 +387,6 @@ function App() {
     console.log('SSH Keys saved:', updatedKeys.length);
   };
 
-  // Focus terminal when clicked
-  const handleTerminalClick = () => {
-    if (terminalRef.current) {
-      terminalRef.current.focus();
-    }
-  };
-
   return (
     <div style={{
       width: '100vw',
@@ -339,8 +399,10 @@ function App() {
     }}>
       {/* Top bar */}
       <TopBar 
-        status={status}
-        connected={connected}
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onTabClick={handleTabClick}
+        onTabClose={handleTabClose}
         onSearch={(query) => console.log('Search:', query)}
         onSettingsClick={() => alert('Settings coming soon!')}
         onPreferencesClick={() => setShowKeysModal(true)}
@@ -378,17 +440,16 @@ function App() {
           />
         )}
         
-        {/* Terminal container - always rendered but hidden when dashboard is shown */}
+        {/* Terminal area - container for all terminal tabs */}
         <div 
-          ref={containerRef}
-          onClick={handleTerminalClick}
+          id="terminal-area"
           style={{
             flex: 1,
             width: '100%',
             backgroundColor: '#000',
-            cursor: 'text',
             overflow: 'hidden',
-            display: showDashboard ? 'none' : 'block'
+            display: showDashboard ? 'none' : 'block',
+            position: 'relative'
           }}
         />
       </div>

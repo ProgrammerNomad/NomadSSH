@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import logoSvg from '../../../assets/logo.svg';
+import { SessionTabs, Tab } from './SessionTabs';
 
 interface TopBarProps {
-  status: string;
-  connected: boolean;
+  tabs: Tab[];
+  activeTabId: string;
+  onTabClick: (tabId: string) => void;
+  onTabClose: (tabId: string) => void;
   onSearch?: (query: string) => void;
   onSettingsClick?: () => void;
   onPreferencesClick?: () => void;
@@ -12,8 +15,10 @@ interface TopBarProps {
 }
 
 export function TopBar({
-  status,
-  connected,
+  tabs,
+  activeTabId,
+  onTabClick,
+  onTabClose,
   onSearch,
   onSettingsClick,
   onPreferencesClick,
@@ -99,29 +104,13 @@ export function TopBar({
         </span>
       </div>
 
-      {/* Connection status */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '6px 12px',
-        backgroundColor: '#27272A',
-        borderRadius: '6px',
-        fontSize: '13px'
-      }}>
-        <div style={{ 
-          width: '6px', 
-          height: '6px', 
-          borderRadius: '50%', 
-          backgroundColor: connected ? '#10B981' : '#71717A'
-        }} />
-        <span style={{ color: connected ? '#10B981' : '#A1A1AA' }}>
-          {status}
-        </span>
-      </div>
-
-      {/* Spacer for tabs - they will go here */}
-      <div style={{ flex: 1 }} />
+      {/* Session tabs - will show active SSH connections */}
+      <SessionTabs
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onTabClick={onTabClick}
+        onTabClose={onTabClose}
+      />
 
       {/* Compact search */}
       <div style={{
