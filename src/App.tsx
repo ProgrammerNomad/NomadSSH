@@ -44,6 +44,7 @@ function App() {
   // View state
   const [showDashboard, setShowDashboard] = useState(true);
   const [showProfilesManager, setShowProfilesManager] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Modal states
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
@@ -275,8 +276,9 @@ function App() {
   };
 
   const handleTabClick = (tabId: string) => {
-    // Switch to tab
+    // Switch to tab and show terminal area
     setActiveTabId(tabId);
+    setShowDashboard(false);
     
     // Hide all terminal containers
     containersRef.current.forEach((container, id) => {
@@ -427,6 +429,8 @@ function App() {
           onEditProfile={handleEditProfile}
           onDeleteProfile={handleDeleteProfile}
           onHomeClick={() => setShowDashboard(true)}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
 
         {/* Main content area - Dashboard or Terminal */}

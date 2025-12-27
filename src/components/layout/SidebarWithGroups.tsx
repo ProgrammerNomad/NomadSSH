@@ -28,6 +28,8 @@ interface SidebarProps {
   onEditProfile?: (profile: Profile) => void;
   onDeleteProfile?: (profileId: string) => void;
   onHomeClick?: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export function Sidebar({ 
@@ -39,7 +41,9 @@ export function Sidebar({
   onManageCategories,
   onEditProfile,
   onDeleteProfile,
-  onHomeClick
+  onHomeClick,
+  collapsed = false,
+  onToggleCollapse
 }: SidebarProps) {
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ profileId: string; x: number; y: number } | null>(null);
@@ -83,9 +87,204 @@ export function Sidebar({
   // Uncategorized profiles
   const uncategorized = profiles.filter(p => !p.categoryId || !categories.find(c => c.id === p.categoryId));
 
+  // Collapsed icon-only view
+  if (collapsed) {
+    return (
+      <div style={{
+        width: '56px',
+        backgroundColor: '#18181B',
+        borderRight: '1px solid #3F3F46',
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
+        transition: 'width 0.2s ease'
+      }}>
+        {/* Home icon */}
+        <button
+          onClick={onHomeClick}
+          title="Home"
+          style={{
+            width: '56px',
+            height: '56px',
+            backgroundColor: 'transparent',
+            border: 'none',
+            color: '#D4D4D8',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background-color 0.15s ease'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#27272A'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+        >
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        </button>
+
+        {/* Connections icon */}
+        <button
+          onClick={() => {
+            setActiveView('connections');
+            onToggleCollapse?.(); // Expand sidebar to show profiles
+          }}
+          title="Connections"
+          style={{
+            width: '56px',
+            height: '56px',
+            backgroundColor: activeView === 'connections' ? '#27272A' : 'transparent',
+            border: 'none',
+            borderLeft: activeView === 'connections' ? '3px solid #06B6D4' : '3px solid transparent',
+            color: '#D4D4D8',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s ease',
+            position: 'relative'
+          }}
+          onMouseEnter={(e) => {
+            if (activeView !== 'connections') {
+              e.currentTarget.style.backgroundColor = '#27272A';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeView !== 'connections') {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }
+          }}
+        >
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          {profiles.length > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              backgroundColor: '#06B6D4',
+              color: '#09090B',
+              fontSize: '10px',
+              fontWeight: 700,
+              padding: '2px 5px',
+              borderRadius: '10px',
+              minWidth: '18px',
+              textAlign: 'center'
+            }}>
+              {profiles.length}
+            </span>
+          )}
+        </button>
+
+        {/* Snippets icon */}
+        <button
+          onClick={() => setActiveView('snippets')}
+          title="Snippets"
+          style={{
+            width: '56px',
+            height: '56px',
+            backgroundColor: activeView === 'snippets' ? '#27272A' : 'transparent',
+            border: 'none',
+            borderLeft: activeView === 'snippets' ? '3px solid #06B6D4' : '3px solid transparent',
+            color: '#D4D4D8',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (activeView !== 'snippets') {
+              e.currentTarget.style.backgroundColor = '#27272A';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeView !== 'snippets') {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }
+          }}
+        >
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+          </svg>
+        </button>
+
+        {/* Logs icon */}
+        <button
+          onClick={() => setActiveView('logs')}
+          title="Logs"
+          style={{
+            width: '56px',
+            height: '56px',
+            backgroundColor: activeView === 'logs' ? '#27272A' : 'transparent',
+            border: 'none',
+            borderLeft: activeView === 'logs' ? '3px solid #06B6D4' : '3px solid transparent',
+            color: '#D4D4D8',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (activeView !== 'logs') {
+              e.currentTarget.style.backgroundColor = '#27272A';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeView !== 'logs') {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }
+          }}
+        >
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </button>
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Toggle expand button */}
+        <button
+          onClick={onToggleCollapse}
+          title="Expand sidebar"
+          style={{
+            width: '56px',
+            height: '56px',
+            backgroundColor: 'transparent',
+            border: 'none',
+            borderTop: '1px solid #3F3F46',
+            color: '#71717A',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#27272A';
+            e.currentTarget.style.color = '#D4D4D8';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = '#71717A';
+          }}
+        >
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
+  // Expanded full view
   return (
     <div style={{
       width: '280px',
+      transition: 'width 0.2s ease',
       backgroundColor: '#18181B',
       borderRight: '1px solid #3F3F46',
       display: 'flex',
@@ -767,6 +966,41 @@ export function Sidebar({
         >
           <span style={{ fontSize: '18px', fontWeight: 700 }}>+</span>
           <span>New Connection</span>
+        </button>
+        
+        {/* Toggle collapse button */}
+        <button
+          onClick={onToggleCollapse}
+          title="Collapse sidebar"
+          style={{
+            width: '100%',
+            padding: '8px',
+            marginTop: '8px',
+            backgroundColor: 'transparent',
+            border: '1px solid #3F3F46',
+            borderRadius: '6px',
+            color: '#71717A',
+            fontSize: '12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#27272A';
+            e.currentTarget.style.color = '#D4D4D8';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = '#71717A';
+          }}
+        >
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          </svg>
+          Collapse
         </button>
       </div>
 
