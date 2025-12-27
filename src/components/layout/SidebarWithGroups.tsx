@@ -481,13 +481,6 @@ export function Sidebar({
                       }
                     }}
                   >
-                    <div style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      backgroundColor: '#10B981',
-                      flexShrink: 0
-                    }} />
                     <div style={{ flex: 1, overflow: 'hidden' }}>
                       <div style={{
                         fontSize: '14px',
@@ -593,13 +586,6 @@ export function Sidebar({
                       }
                     }}
                   >
-                    <div style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      backgroundColor: '#10B981',
-                      flexShrink: 0
-                    }} />
                     <div style={{ flex: 1, overflow: 'hidden' }}>
                       <div style={{
                         fontSize: '14px',

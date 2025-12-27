@@ -408,7 +408,7 @@ function App() {
         onSearch={(query) => console.log('Search:', query)}
         onSettingsClick={() => alert('Settings coming soon!')}
         onPreferencesClick={() => setShowKeysModal(true)}
-        onAboutClick={() => alert('About NomadSSH\n\nVersion 1.0.0\nBased on Tabby Terminal')}
+        onAboutClick={() => alert('NomadSSH v0.0.1\n\nProfessional SSH Client with Zero-Knowledge Sync\n\nMIT License\nhttps://github.com/ProgrammerNomad/NomadSSH')}
         onManageProfilesClick={() => setShowProfilesManager(true)}
       />
 

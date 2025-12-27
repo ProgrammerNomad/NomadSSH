@@ -1,6 +1,6 @@
 {
   "name": "nomadssh",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Secure, cloud-synced SSH client for power users",
   "main": "dist/electron/main.js",
   "author": "Shiv Singh",

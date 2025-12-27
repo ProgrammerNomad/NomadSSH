@@ -5,9 +5,7 @@
 
 ---
 
-NomadSSH is an open-source, cross-platform SSH client built on top of the excellent Tabby Terminal project. It is designed for developers and operators who work across multiple machines and environments and need their SSH setup to follow them everywhere.
-
-NomadSSH extends Tabby with a strong focus on encrypted cloud sync, portability, and daily power-user workflows, while preserving the reliability and performance of a mature SSH client.
+NomadSSH is a professional, open-source SSH client designed for developers and operators who work across multiple machines and environments. Built with modern web technologies (Electron, React, TypeScript), it delivers a powerful terminal experience with zero-knowledge encrypted cloud sync, ensuring your SSH configurations follow you anywhere.
 
 ---
 
@@ -221,15 +219,18 @@ Please read `CONTRIBUTING.md` before submitting pull requests.
 
 NomadSSH is licensed under the **MIT License**.
 
-This project is based on Tabby, which is also MIT licensed.  
-All original Tabby copyright notices are preserved.
+See [LICENSE](LICENSE) for full details.
 
 ---
 
-## Acknowledgements
+## Technology Credits
 
-NomadSSH is built on top of the amazing **Tabby Terminal** project and its community.  
-Without Tabby, this project would not exist.
+NomadSSH is built with:
+
+- **Electron** - Cross-platform desktop framework
+- **xterm.js** - Terminal emulator component
+- **ssh2** - Pure JavaScript SSH2 implementation
+- **React** - UI framework
 
 ---
 
