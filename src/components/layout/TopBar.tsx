@@ -8,6 +8,7 @@ interface TopBarProps {
   onSettingsClick?: () => void;
   onPreferencesClick?: () => void;
   onAboutClick?: () => void;
+  onManageProfilesClick?: () => void;
 }
 
 export function TopBar({
@@ -16,7 +17,8 @@ export function TopBar({
   onSearch,
   onSettingsClick,
   onPreferencesClick,
-  onAboutClick
+  onAboutClick,
+  onManageProfilesClick
 }: TopBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -39,6 +41,11 @@ export function TopBar({
   const handleAboutClick = () => {
     setShowSettingsMenu(false);
     onAboutClick?.();
+  };
+
+  const handleManageProfilesClick = () => {
+    setShowSettingsMenu(false);
+    onManageProfilesClick?.();
   };
 
   return (
@@ -227,8 +234,30 @@ export function TopBar({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
               Keychain (SSH Keys)
-            </button>
-            <button
+            </button>            <button
+              onClick={handleManageProfilesClick}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: '#E5E7EB',
+                fontSize: '14px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                transition: 'background-color 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#27272A'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Manage Profiles
+            </button>            <button
               onClick={handleSettingsClick}
               style={{
                 width: '100%',

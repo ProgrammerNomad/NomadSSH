@@ -11,7 +11,7 @@ import { TopBar } from './components/layout/TopBar';
 import { Sidebar } from './components/layout/SidebarWithGroups';
 import { ManageCategoriesModal, Category } from './components/categories';
 import { ManageKeysModal, SSHKey } from './components/keys';
-import { ProfileModal } from './components/profiles';
+import { ProfileModal, ProfilesManager } from './components/profiles';
 
 interface Profile {
   id: string;
@@ -32,6 +32,9 @@ function App() {
   const [status, setStatus] = useState('Initializing...');
   const [connected, setConnected] = useState(false);
   const [activeProfileId, setActiveProfileId] = useState<string | undefined>();
+  
+  // View state
+  const [showProfilesManager, setShowProfilesManager] = useState(false);
   
   // Modal states
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
@@ -297,6 +300,17 @@ function App() {
     }
   };
 
+  const handleDuplicateProfile = (profile: Profile) => {
+    const newProfile = {
+      ...profile,
+      id: `profile_${Date.now()}`,
+      name: `${profile.name} (Copy)`
+    };
+    setProfiles([...profiles, newProfile]);
+    setEditingProfile(newProfile);
+    setShowProfileModal(true);
+  };
+
   const handleSaveCategories = (updatedCategories: Category[]) => {
     setCategories(updatedCategories);
     console.log('Categories saved:', updatedCategories);
@@ -333,6 +347,7 @@ function App() {
         onSettingsClick={() => alert('Settings coming soon!')}
         onPreferencesClick={() => setShowKeysModal(true)}
         onAboutClick={() => alert('About NomadSSH\n\nVersion 1.0.0\nBased on Tabby Terminal')}
+        onManageProfilesClick={() => setShowProfilesManager(true)}
       />
 
       {/* Main content area */}
@@ -392,6 +407,23 @@ function App() {
         sshKeys={sshKeys}
         editProfile={editingProfile}
       />
+
+      {/* Full-screen views */}
+      {showProfilesManager && (
+        <ProfilesManager
+          profiles={profiles}
+          categories={categories}
+          sshKeys={sshKeys}
+          onClose={() => setShowProfilesManager(false)}
+          onEditProfile={(profile) => {
+            setEditingProfile(profile);
+            setShowProfileModal(true);
+          }}
+          onDeleteProfile={handleDeleteProfile}
+          onAddProfile={handleAddProfile}
+          onDuplicateProfile={handleDuplicateProfile}
+        />
+      )}
     </div>
   );
 }
