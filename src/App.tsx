@@ -364,6 +364,7 @@ function App() {
           onManageCategories={() => setShowCategoriesModal(true)}
           onEditProfile={handleEditProfile}
           onDeleteProfile={handleDeleteProfile}
+          onHomeClick={() => setShowDashboard(true)}
         />
 
         {/* Main content area - Dashboard or Terminal */}

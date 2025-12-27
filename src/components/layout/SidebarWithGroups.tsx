@@ -27,6 +27,7 @@ interface SidebarProps {
   onManageCategories: () => void;
   onEditProfile?: (profile: Profile) => void;
   onDeleteProfile?: (profileId: string) => void;
+  onHomeClick?: () => void;
 }
 
 export function Sidebar({ 
@@ -37,7 +38,8 @@ export function Sidebar({
   onAddProfile,
   onManageCategories,
   onEditProfile,
-  onDeleteProfile
+  onDeleteProfile,
+  onHomeClick
 }: SidebarProps) {
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<{ profileId: string; x: number; y: number } | null>(null);
@@ -89,6 +91,40 @@ export function Sidebar({
       flexDirection: 'column',
       flexShrink: 0
     }}>
+      {/* Home button */}
+      <button
+        onClick={onHomeClick}
+        style={{
+          margin: '12px 12px 0',
+          padding: '12px 16px',
+          backgroundColor: 'transparent',
+          border: '1px solid #27272A',
+          borderRadius: '8px',
+          color: '#D4D4D8',
+          fontSize: '14px',
+          fontWeight: 600,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          transition: 'all 0.15s ease',
+          textAlign: 'left'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#27272A';
+          e.currentTarget.style.borderColor = '#3F3F46';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.borderColor = '#27272A';
+        }}
+      >
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+        Home
+      </button>
+
       {/* Sidebar header */}
       <div style={{
         padding: '16px',
