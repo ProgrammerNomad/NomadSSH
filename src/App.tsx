@@ -11,6 +11,7 @@ import { TopBar } from './components/layout/TopBar';
 import { Sidebar } from './components/layout/SidebarWithGroups';
 import { ManageCategoriesModal, Category } from './components/categories';
 import { ManageKeysModal, SSHKey } from './components/keys';
+import { ProfileModal } from './components/profiles';
 
 interface Profile {
   id: string;
@@ -35,30 +36,64 @@ function App() {
   // Modal states
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [showKeysModal, setShowKeysModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<Profile | undefined>();
   
-  // Categories with defaults
-  const [categories, setCategories] = useState<Category[]>([
-    { id: 'cat_personal', name: 'Personal', isDefault: true },
-    { id: 'cat_work', name: 'Work', isDefault: true },
-    { id: 'cat_clients', name: 'Clients', isDefault: true }
-  ]);
+  // Load data from localStorage or use defaults on first run
+  const [categories, setCategories] = useState<Category[]>(() => {
+    const stored = localStorage.getItem('nomadssh_categories');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    // First run defaults
+    return [
+      { id: 'cat_personal', name: 'Personal', isDefault: true },
+      { id: 'cat_work', name: 'Work', isDefault: true },
+      { id: 'cat_clients', name: 'Clients', isDefault: true }
+    ];
+  });
   
   // SSH Keys
-  const [sshKeys, setSshKeys] = useState<SSHKey[]>([]);
+  const [sshKeys, setSshKeys] = useState<SSHKey[]>(() => {
+    const stored = localStorage.getItem('nomadssh_ssh_keys');
+    return stored ? JSON.parse(stored) : [];
+  });
   
-  // Profiles with default test server
-  const [profiles, setProfiles] = useState<Profile[]>([
-    {
-      id: 'rebex_test',
-      name: 'Rebex Test Server',
-      host: 'test.rebex.net',
-      port: 22,
-      username: 'demo',
-      password: 'password',
-      authMethod: 'password',
-      categoryId: 'cat_personal'
+  // Profiles - only add demo server on first run
+  const [profiles, setProfiles] = useState<Profile[]>(() => {
+    const stored = localStorage.getItem('nomadssh_profiles');
+    if (stored) {
+      return JSON.parse(stored);
     }
-  ]);
+    // First run: add demo profile
+    return [
+      {
+        id: 'rebex_test',
+        name: 'Rebex Test Server',
+        host: 'test.rebex.net',
+        port: 22,
+        username: 'demo',
+        password: 'password',
+        authMethod: 'password',
+        categoryId: 'cat_personal'
+      }
+    ];
+  });
+
+  // Persist categories to localStorage
+  useEffect(() => {
+    localStorage.setItem('nomadssh_categories', JSON.stringify(categories));
+  }, [categories]);
+
+  // Persist SSH keys to localStorage
+  useEffect(() => {
+    localStorage.setItem('nomadssh_ssh_keys', JSON.stringify(sshKeys));
+  }, [sshKeys]);
+
+  // Persist profiles to localStorage
+  useEffect(() => {
+    localStorage.setItem('nomadssh_profiles', JSON.stringify(profiles));
+  }, [profiles]);
 
   useEffect(() => {
     // Prevent double initialization (React StrictMode runs effects twice)
@@ -121,10 +156,17 @@ function App() {
       // Focus terminal immediately
       terminal.focus();
       
-      setStatus('Connecting to SSH...');
-
-      // Auto-connect to first profile
-      connectSSH(terminal, profiles[0]);
+      // Auto-connect to first profile if available
+      if (profiles.length > 0) {
+        setStatus('Connecting to SSH...');
+        connectSSH(terminal, profiles[0]);
+      } else {
+        setStatus('No connections - Add one to get started');
+        terminal.writeln('\x1b[1;36m=== Welcome to NomadSSH ===\x1b[0m');
+        terminal.writeln('');
+        terminal.writeln('Click the "+ New Connection" button in the sidebar to add your first SSH connection.');
+        terminal.writeln('');
+      }
     });
 
     // Handle window resize
@@ -224,18 +266,45 @@ function App() {
   };
 
   const handleAddProfile = () => {
-    alert('Add Profile - Coming soon!');
+    setEditingProfile(undefined);
+    setShowProfileModal(true);
+  };
+
+  const handleEditProfile = (profile: Profile) => {
+    setEditingProfile(profile);
+    setShowProfileModal(true);
+  };
+
+  const handleSaveProfile = (profile: Profile) => {
+    if (editingProfile) {
+      // Edit existing
+      setProfiles(profiles.map(p => p.id === profile.id ? profile : p));
+    } else {
+      // Add new
+      setProfiles([...profiles, profile]);
+    }
+    console.log('Profile saved:', profile);
+  };
+
+  const handleDeleteProfile = (profileId: string) => {
+    if (confirm('Delete this connection?')) {
+      setProfiles(profiles.filter(p => p.id !== profileId));
+      if (activeProfileId === profileId) {
+        setActiveProfileId(undefined);
+        setConnected(false);
+        setStatus('Disconnected');
+      }
+    }
   };
 
   const handleSaveCategories = (updatedCategories: Category[]) => {
     setCategories(updatedCategories);
-    // TODO: Save to localStorage
     console.log('Categories saved:', updatedCategories);
   };
 
   const handleSaveKeys = (updatedKeys: SSHKey[]) => {
     setSshKeys(updatedKeys);
-    // TODO: Save to localStorage with encryption
+    // TODO: Add encryption before saving (security requirement)
     console.log('SSH Keys saved:', updatedKeys.length);
   };
 
@@ -280,6 +349,8 @@ function App() {
           onProfileSelect={handleProfileSelect}
           onAddProfile={handleAddProfile}
           onManageCategories={() => setShowCategoriesModal(true)}
+          onEditProfile={handleEditProfile}
+          onDeleteProfile={handleDeleteProfile}
         />
 
         {/* Terminal area */}
@@ -308,6 +379,18 @@ function App() {
         onClose={() => setShowKeysModal(false)}
         keys={sshKeys}
         onSave={handleSaveKeys}
+      />
+
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => {
+          setShowProfileModal(false);
+          setEditingProfile(undefined);
+        }}
+        onSave={handleSaveProfile}
+        categories={categories}
+        sshKeys={sshKeys}
+        editProfile={editingProfile}
       />
     </div>
   );

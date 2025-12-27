@@ -25,6 +25,8 @@ interface SidebarProps {
   onProfileSelect: (profile: Profile) => void;
   onAddProfile: () => void;
   onManageCategories: () => void;
+  onEditProfile?: (profile: Profile) => void;
+  onDeleteProfile?: (profileId: string) => void;
 }
 
 export function Sidebar({ 
@@ -33,9 +35,12 @@ export function Sidebar({
   activeProfileId, 
   onProfileSelect, 
   onAddProfile,
-  onManageCategories
+  onManageCategories,
+  onEditProfile,
+  onDeleteProfile
 }: SidebarProps) {
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [contextMenu, setContextMenu] = useState<{ profileId: string; x: number; y: number } | null>(null);
 
   const toggleCategory = (categoryId: string) => {
     const newCollapsed = new Set(collapsedCategories);
@@ -46,6 +51,25 @@ export function Sidebar({
     }
     setCollapsedCategories(newCollapsed);
   };
+
+  const handleContextMenu = (e: React.MouseEvent, profileId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ profileId, x: e.clientX, y: e.clientY });
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+  };
+
+  // Close context menu when clicking outside
+  React.useEffect(() => {
+    if (contextMenu) {
+      const handleClick = () => handleCloseContextMenu();
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [contextMenu]);
 
   // Group profiles by category
   const groupedProfiles = categories.map(category => ({
@@ -169,6 +193,7 @@ export function Sidebar({
                     <button
                       key={profile.id}
                       onClick={() => onProfileSelect(profile)}
+                      onContextMenu={(e) => handleContextMenu(e, profile.id)}
                       style={{
                         width: '100%',
                         padding: '10px 12px',
@@ -247,6 +272,7 @@ export function Sidebar({
                 <button
                   key={profile.id}
                   onClick={() => onProfileSelect(profile)}
+                  onContextMenu={(e) => handleContextMenu(e, profile.id)}
                   style={{
                     width: '100%',
                     padding: '10px 12px',
@@ -340,6 +366,81 @@ export function Sidebar({
           <span>New Connection</span>
         </button>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            left: contextMenu.x,
+            top: contextMenu.y,
+            backgroundColor: '#18181B',
+            border: '1px solid #3F3F46',
+            borderRadius: '8px',
+            padding: '4px',
+            zIndex: 10000,
+            minWidth: '160px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {onEditProfile && (
+            <button
+              onClick={() => {
+                const profile = profiles.find(p => p.id === contextMenu.profileId);
+                if (profile) {
+                  onEditProfile(profile);
+                  handleCloseContextMenu();
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#E5E7EB',
+                fontSize: '14px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'background-color 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#27272A'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              Edit Connection
+            </button>
+          )}
+          {onDeleteProfile && (
+            <button
+              onClick={() => {
+                onDeleteProfile(contextMenu.profileId);
+                handleCloseContextMenu();
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#EF4444',
+                fontSize: '14px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'background-color 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              Delete Connection
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
