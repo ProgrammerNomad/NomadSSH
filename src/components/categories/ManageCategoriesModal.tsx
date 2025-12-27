@@ -41,11 +41,6 @@ export function ManageCategoriesModal({
   };
 
   const handleDeleteCategory = (id: string) => {
-    const category = categories.find(c => c.id === id);
-    if (category?.isDefault) {
-      alert('Cannot delete default categories');
-      return;
-    }
     setCategories(categories.filter(c => c.id !== id));
   };
 
@@ -285,66 +280,53 @@ export function ManageCategoriesModal({
                         }}>
                           {category.name}
                         </div>
-                        {category.isDefault && (
-                          <div style={{
-                            fontSize: '12px',
-                            color: '#71717A',
-                            marginTop: '4px'
-                          }}>
-                            Default Category
-                          </div>
-                        )}
                       </div>
-                      {!category.isDefault && (
-                        <>
-                          <button
-                            onClick={() => handleStartEdit(category)}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: 'transparent',
-                              border: '1px solid #3F3F46',
-                              borderRadius: '6px',
-                              color: '#A1A1AA',
-                              fontSize: '13px',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#3F3F46';
-                              e.currentTarget.style.color = '#E5E7EB';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.color = '#A1A1AA';
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteCategory(category.id)}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: 'transparent',
-                              border: '1px solid #3F3F46',
-                              borderRadius: '6px',
-                              color: '#EF4444',
-                              fontSize: '13px',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-                              e.currentTarget.style.borderColor = '#EF4444';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                              e.currentTarget.style.borderColor = '#3F3F46';
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => handleStartEdit(category)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #3F3F46',
+                          borderRadius: '6px',
+                          color: '#A1A1AA',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#3F3F46';
+                          e.currentTarget.style.color = '#E5E7EB';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.color = '#A1A1AA';
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCategory(category.id)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #3F3F46',
+                          borderRadius: '6px',
+                          color: '#EF4444',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                          e.currentTarget.style.borderColor = '#EF4444';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.borderColor = '#3F3F46';
+                        }}
+                      >
+                        Delete
+                      </button>
                     </>
                   )}
                 </div>

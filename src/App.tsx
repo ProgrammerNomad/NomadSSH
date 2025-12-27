@@ -8,7 +8,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { TopBar } from './components/layout/TopBar';
-import { Sidebar } from './components/layout/Sidebar';
+import { Sidebar } from './components/layout/SidebarWithGroups';
 import { ManageCategoriesModal, Category } from './components/categories';
 import { ManageKeysModal, SSHKey } from './components/keys';
 
@@ -46,15 +46,17 @@ function App() {
   // SSH Keys
   const [sshKeys, setSshKeys] = useState<SSHKey[]>([]);
   
-  const [profiles] = useState<Profile[]>([
+  // Profiles with default test server
+  const [profiles, setProfiles] = useState<Profile[]>([
     {
-      id: 'paddockavenue',
-      name: 'paddockavenue',
-      host: '198.96.88.179',
+      id: 'rebex_test',
+      name: 'Rebex Test Server',
+      host: 'test.rebex.net',
       port: 22,
-      username: 'paddockavenue',
-      password: 'hOq$hYj93I%pala6',
-      authMethod: 'password'
+      username: 'demo',
+      password: 'password',
+      authMethod: 'password',
+      categoryId: 'cat_personal'
     }
   ]);
 
@@ -259,7 +261,7 @@ function App() {
         status={status}
         connected={connected}
         onSearch={(query) => console.log('Search:', query)}
-        onSettingsClick={() => setShowCategoriesModal(true)}
+        onSettingsClick={() => alert('Settings coming soon!')}
         onPreferencesClick={() => setShowKeysModal(true)}
         onAboutClick={() => alert('About NomadSSH\n\nVersion 1.0.0\nBased on Tabby Terminal')}
       />
@@ -273,9 +275,11 @@ function App() {
         {/* Sidebar */}
         <Sidebar 
           profiles={profiles}
+          categories={categories}
           activeProfileId={activeProfileId}
           onProfileSelect={handleProfileSelect}
           onAddProfile={handleAddProfile}
+          onManageCategories={() => setShowCategoriesModal(true)}
         />
 
         {/* Terminal area */}
