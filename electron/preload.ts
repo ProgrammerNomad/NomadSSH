@@ -185,6 +185,28 @@ contextBridge.exposeInMainWorld('nomad', {
         ipcRenderer.removeListener('ssh:log', listener);
       };
     },
+
+    /**
+     * Listen to host key verification requests
+     * Returns cleanup function
+     */
+    onHostKeyVerification: (callback: (sessionId: string, data: any, verificationId: string) => void) => {
+      const listener = (_event: any, sessionId: string, data: any, verificationId: string) => {
+        callback(sessionId, data, verificationId);
+      };
+      ipcRenderer.on('ssh:hostKeyVerification', listener);
+      
+      return () => {
+        ipcRenderer.removeListener('ssh:hostKeyVerification', listener);
+      };
+    },
+
+    /**
+     * Respond to host key verification
+     */
+    respondToHostKeyVerification: (verificationId: string, accepted: boolean) => {
+      return ipcRenderer.invoke(`ssh:hostKeyVerification:${verificationId}`, accepted);
+    },
   },
 
   storage: {

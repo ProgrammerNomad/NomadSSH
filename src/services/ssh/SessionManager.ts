@@ -281,6 +281,19 @@ export class SessionManager extends EventEmitter {
       addToBuffer('log', message);
       this.emit('session:log', sessionId, message);
     });
+
+    // Forward host key verification event
+    connection.on('hostKeyVerification', async (data: any) => {
+      console.log('[SessionManager] Forwarding host key verification event');
+      // Forward to session manager, which will forward to IPC
+      // Return the result via promise
+      const result = await new Promise<boolean>((resolve) => {
+        // Emit event with session ID, data, and resolver
+        this.emit('session:hostKeyVerification', sessionId, data, resolve);
+      });
+      console.log('[SessionManager] Host key verification result:', result);
+      return result;
+    });
   }
 
   /**

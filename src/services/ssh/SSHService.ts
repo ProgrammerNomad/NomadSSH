@@ -13,7 +13,26 @@
 import { Client, ConnectConfig } from 'ssh2';
 import { readFile } from 'fs/promises';
 import { EventEmitter } from 'events';
-import type { SSHProfile, SSHKey } from '../../types';
+import { createHash } from 'crypto';
+import type { SSHProfile, SSHKey, HostKey } from '../../types';
+
+// Import storage service (runs in main process only)
+let knownHostsService: any = null;
+if (typeof window === 'undefined') {
+  // Main process - import the actual service
+  knownHostsService = require('../storage/KnownHostsService').knownHostsService;
+}
+
+export interface HostKeyVerificationData {
+  host: string;
+  port: number;
+  fingerprint: string;
+  fingerprintMD5: string;
+  keyType: string;
+  algorithm: string;
+  isChanged: boolean;
+  oldFingerprint: string | null;
+}
 
 export interface SSHConnectionEvents {
   ready: () => void;
@@ -22,6 +41,7 @@ export interface SSHConnectionEvents {
   close: () => void;
   status: (status: 'connecting' | 'connected' | 'disconnected' | 'error') => void;
   log: (message: string) => void;
+  hostKeyVerification: (data: HostKeyVerificationData) => Promise<boolean>;
 }
 
 export class SSHConnection extends EventEmitter {
@@ -30,6 +50,7 @@ export class SSHConnection extends EventEmitter {
   private status: 'disconnected' | 'connecting' | 'connected' | 'error' = 'disconnected';
   private sessionId: string;
   private profile: SSHProfile;
+  private hostKeyRejected = false;
 
   constructor(sessionId: string, profile: SSHProfile) {
     super();
@@ -45,6 +66,7 @@ export class SSHConnection extends EventEmitter {
       throw new Error('Already connected or connecting');
     }
 
+    this.hostKeyRejected = false;
     this.updateStatus('connecting');
     this.log(`Started new SSH connection to ${this.profile.host}:${this.profile.port}`);
     this.log(`Username: ${this.profile.username}`);
@@ -61,6 +83,52 @@ export class SSHConnection extends EventEmitter {
         username: this.profile.username,
         readyTimeout: 30000,
         keepaliveInterval: 10000,
+        hostVerifier: (keyHash: Buffer, callback: (valid: boolean) => void) => {
+          console.log('[SSHService] ===== HOST VERIFIER CALLED =====');
+          console.log('[SSHService] Key buffer length:', keyHash.length);
+          
+          // Parse key type from buffer (first 7 bytes usually contain the algorithm name length + name)
+          let keyType = 'unknown';
+          try {
+            // SSH key format: 4 bytes length + algorithm name
+            if (keyHash.length > 4) {
+              const algoLength = keyHash.readUInt32BE(0);
+              if (algoLength > 0 && algoLength < 100 && keyHash.length > 4 + algoLength) {
+                keyType = keyHash.slice(4, 4 + algoLength).toString('utf8');
+              }
+            }
+          } catch (e) {
+            console.log('[SSHService] Could not parse key type from buffer');
+          }
+          
+          console.log('[SSHService] Detected key type:', keyType);
+          
+          // Call async verifyHostKey and convert to callback pattern
+          this.verifyHostKey(keyHash, keyType)
+            .then(accepted => {
+              console.log('[SSHService] Host key verification result:', accepted);
+              if (!accepted) {
+                this.log('❌ Host key rejected by user');
+                console.log('[SSHService] ❌ User rejected host key - aborting connection');
+                this.hostKeyRejected = true;
+                // Manually destroy the connection before calling callback
+                if (this.client) {
+                  this.client.destroy();
+                }
+              }
+                this.hostKeyRejected = false;
+              callback(accepted);
+            })
+            .catch(err => {
+              console.error('[SSHService] Host key verification error:', err);
+              this.log('❌ Host key verification error');
+              if (this.client) {
+                this.client.destroy();
+              this.hostKeyRejected = true;
+              }
+              callback(false);
+            });
+        },
       };
 
       // Handle authentication
@@ -112,6 +180,22 @@ export class SSHConnection extends EventEmitter {
       }
 
       // Handle SSH client events
+      let settled = false;
+      const safeResolve = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve();
+      };
+      const safeReject = (error: Error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        reject(error);
+      };
+
       this.client.on('ready', async () => {
         console.log('[SSHService] ===== SSH CLIENT READY EVENT =====');
         this.log('SSH connection established');
@@ -125,32 +209,50 @@ export class SSHConnection extends EventEmitter {
           console.log('[SSHService] Emitting ready event');
           this.emit('ready');
           console.log('[SSHService] Ready handler complete');
-          resolve();
+          safeResolve();
         } catch (error) {
           console.error('[SSHService] Error in ready handler:', error);
-          this.log(`Error: ${error instanceof Error ? error.message : 'Unknown'}`);
-          reject(error);
+          safeReject(error instanceof Error ? error : new Error(String(error)));
         }
       });
 
       this.client.on('error', (err) => {
+        console.log('[SSHService] ===== ERROR EVENT =====', err.message);
         this.log(`Connection error: ${err.message}`);
         this.updateStatus('error');
+
+        if (this.client) {
+          this.client.end();
+          this.client.destroy();
+        }
+
         this.emit('error', err);
-        reject(err);
+        safeReject(err instanceof Error ? err : new Error(String(err)));
       });
 
       this.client.on('close', () => {
         console.log('[SSHService] ===== CLIENT CLOSE EVENT =====');
         console.trace('[SSHService] Close event stack trace');
-        this.log('SSH connection closed');
+        if (!settled) {
+          if (this.hostKeyRejected) {
+            safeReject(new Error('Host key rejected by user'));
+          } else {
+            safeReject(new Error('SSH connection closed before becoming ready'));
+          }
+        }
         this.handleClose();
       });
 
       this.client.on('end', () => {
         console.log('[SSHService] ===== CLIENT END EVENT =====');
         console.trace('[SSHService] End event stack trace');
-        this.log('SSH connection ended');
+        if (!settled) {
+          if (this.hostKeyRejected) {
+            safeReject(new Error('Host key rejected by user'));
+          } else {
+            safeReject(new Error('SSH connection ended before becoming ready'));
+          }
+        }
         this.handleClose();
       });
 
@@ -372,6 +474,171 @@ export class SSHConnection extends EventEmitter {
   private updateStatus(status: 'connecting' | 'connected' | 'disconnected' | 'error'): void {
     this.status = status;
     this.emit('status', status);
+  }
+
+  /**
+   * Generate fingerprint from host key buffer
+   * Supports both SHA-256 and MD5 formats
+   */
+  private generateFingerprintFromBuffer(keyBuffer: Buffer, algorithm: 'sha256' | 'md5'): string {
+    const hash = createHash(algorithm).update(keyBuffer).digest();
+    
+    if (algorithm === 'sha256') {
+      // SHA-256: base64-encoded
+      return `SHA256:${hash.toString('base64').replace(/=+$/, '')}`;
+    } else {
+      // MD5: colon-separated hex
+      return hash.toString('hex').match(/.{2}/g)?.join(':') || '';
+    }
+  }
+
+  /**
+   * Verify host key - check against known hosts and prompt user if needed
+   */
+  private async verifyHostKey(keyBuffer: Buffer, keyType: string): Promise<boolean> {
+    console.log('[SSHService] ===== VERIFY HOST KEY CALLED =====');
+    console.log('[SSHService] Host:', this.profile.host, 'Port:', this.profile.port);
+    console.log('[SSHService] knownHostsService available:', !!knownHostsService);
+    
+    const fingerprint = this.generateFingerprintFromBuffer(keyBuffer, 'sha256');
+    const fingerprintMD5 = this.generateFingerprintFromBuffer(keyBuffer, 'md5');
+    
+    console.log('[SSHService] Generated fingerprints:');
+    console.log('[SSHService] SHA-256:', fingerprint);
+    console.log('[SSHService] MD5:', fingerprintMD5);
+    
+    this.log(`Host key received: ${keyType}`);
+    this.log(`SHA-256: ${fingerprint}`);
+    this.log(`MD5: ${fingerprintMD5}`);
+    
+    // Check against known hosts
+    if (knownHostsService) {
+      console.log('[SSHService] Checking known hosts...');
+      const storedKey = knownHostsService.getHostKey(this.profile.host, this.profile.port);
+      console.log('[SSHService] Stored key found:', !!storedKey);
+      
+      if (storedKey) {
+        console.log('[SSHService] Stored fingerprint:', storedKey.fingerprint);
+        // Host key exists - check if it matches
+        if (storedKey.fingerprint === fingerprint) {
+          // Match! Update last seen and auto-accept
+          console.log('[SSHService] ✅ Host key matches! Auto-accepting.');
+          this.log('Host key verified against known hosts ✓');
+          knownHostsService.updateLastSeen(this.profile.host, this.profile.port);
+          return true;
+        } else {
+          // KEY CHANGED! This is a critical security warning
+          console.log('[SSHService] ⚠️ KEY CHANGED! Old:', storedKey.fingerprint, 'New:', fingerprint);
+          this.log('⚠️ WARNING: Host key has changed!');
+          this.log(`Old: ${storedKey.fingerprint}`);
+          this.log(`New: ${fingerprint}`);
+          
+          // Must prompt user with warning
+          const verificationData: HostKeyVerificationData = {
+            host: this.profile.host,
+            port: this.profile.port,
+            fingerprint,
+            fingerprintMD5,
+            keyType,
+            algorithm: 'sha256',
+            isChanged: true,
+            oldFingerprint: storedKey.fingerprint
+          };
+          
+          console.log('[SSHService] Prompting user for changed key...');
+          const accepted = await this.promptUserForHostKey(verificationData);
+          console.log('[SSHService] User decision (changed key):', accepted);
+          
+          if (accepted) {
+            // User accepted changed key - update storage
+            knownHostsService.saveHostKey(this.profile.host, this.profile.port, fingerprint, fingerprintMD5, keyType, 'sha256');
+            this.log('Host key updated in known hosts');
+          }
+          
+          return accepted;
+        }
+      } else {
+        // Unknown host - prompt user for first-time verification
+        console.log('[SSHService] 🆕 Unknown host - requesting user verification');
+        this.log('Unknown host - requesting user verification');
+        
+        const verificationData: HostKeyVerificationData = {
+          host: this.profile.host,
+          port: this.profile.port,
+          fingerprint,
+          fingerprintMD5,
+          keyType,
+          algorithm: 'sha256',
+          isChanged: false,
+          oldFingerprint: null
+        };
+        
+        console.log('[SSHService] Verification data:', verificationData);
+        console.log('[SSHService] Prompting user for unknown host...');
+        const accepted = await this.promptUserForHostKey(verificationData);
+        console.log('[SSHService] User decision (unknown host):', accepted);
+        
+        if (accepted) {
+          // User accepted - save to known hosts
+          knownHostsService.saveHostKey(this.profile.host, this.profile.port, fingerprint, fingerprintMD5, keyType, 'sha256');
+          this.log('Host key saved to known hosts');
+          console.log('[SSHService] Host key saved to storage');
+        }
+        
+        return accepted;
+      }
+    }
+    
+    // Fallback: no storage service available, prompt user
+    console.log('[SSHService] ⚠️ No storage service, using fallback prompt');
+    const verificationData: HostKeyVerificationData = {
+      host: this.profile.host,
+      port: this.profile.port,
+      fingerprint,
+      fingerprintMD5,
+      keyType,
+      algorithm: 'sha256',
+      isChanged: false,
+      oldFingerprint: null
+    };
+    
+    return await this.promptUserForHostKey(verificationData);
+  }
+
+  /**
+   * Prompt user for host key verification via UI modal
+   */
+  private async promptUserForHostKey(data: HostKeyVerificationData): Promise<boolean> {
+    console.log('[SSHService] ===== PROMPT USER FOR HOST KEY =====');
+    console.log('[SSHService] Listener count for hostKeyVerification:', this.listenerCount('hostKeyVerification'));
+    
+    // Check if we have a hostKeyVerification handler
+    if (this.listenerCount('hostKeyVerification') === 0) {
+      // No handler registered, auto-reject for security
+      console.log('[SSHService] ❌ No handler registered, rejecting for security');
+      this.log('No host key verification handler, rejecting connection');
+      return false;
+    }
+    
+    try {
+      console.log('[SSHService] Emitting hostKeyVerification event...');
+      this.log('Requesting host key verification from user...');
+
+      const [handler] = this.listeners('hostKeyVerification');
+      if (!handler) {
+        console.log('[SSHService] ❌ No handler function found after listener count check');
+        this.log('Host key verification handler missing');
+        return false;
+      }
+
+      // Handler should return Promise<boolean>
+      const accepted = await (handler as (payload: HostKeyVerificationData) => Promise<boolean>)(data);
+      console.log('[SSHService] Handler resolved with:', accepted);
+      return !!accepted;
+    } catch (error) {
+      this.log(`Host key verification error: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return false;
+    }
   }
 
   /**

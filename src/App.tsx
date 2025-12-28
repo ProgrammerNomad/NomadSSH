@@ -117,6 +117,59 @@ function App() {
     localStorage.setItem('nomadssh_ssh_keys', JSON.stringify(sshKeys));
   }, [sshKeys]);
 
+  // Test function to trigger host key modal
+  const testHostKeyModal = () => {
+    setHostKeyData({
+      host: 'example.com',
+      port: 22,
+      fingerprint: 'SHA256:nThbg6kXUpJWGl7E1IGOCspRomTxdCARLviKw6E5SY8',
+      fingerprintMD5: 'a3:b4:c5:d6:e7:f8:a1:b2:c3:d4:e5:f6:a7:b8:c9:d0',
+      keyType: 'ssh-rsa',
+      algorithm: 'sha256',
+      isChanged: false,
+      oldFingerprint: null
+    });
+    setShowHostKeyModal(true);
+  };
+
+  // Global keyboard shortcut for testing: Ctrl+Shift+T
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+        testHostKeyModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  // Global host key verification handler
+  useEffect(() => {
+    const cleanup = window.nomad.ssh.onHostKeyVerification(async (sessionId, data, verificationId) => {
+      console.log('[App] Host key verification requested:', data);
+      
+      // Show modal with host key data
+      setHostKeyData(data);
+      setShowHostKeyModal(true);
+      
+      // Store verificationId for response
+      (window as any).currentVerificationId = verificationId;
+    });
+    
+    // Dev helper: expose function to clear known hosts
+    (window as any).clearKnownHosts = () => {
+      knownHostsService.clearAllKnownHosts();
+      console.log('✅ Known hosts cleared! Reconnect to see verification modal.');
+    };
+    (window as any).showKnownHosts = () => {
+      const hosts = knownHostsService.getAllKnownHosts();
+      console.table(hosts);
+      return hosts;
+    };
+    
+    return cleanup;
+  }, []);
+
   // Persist profiles to localStorage
   useEffect(() => {
     localStorage.setItem('nomadssh_profiles', JSON.stringify(profiles));
@@ -146,6 +199,10 @@ function App() {
   }, []);
 
   const connectSSHWithTab = async (terminal: Terminal, profile: Profile, tabId: string) => {
+    console.log('[App] ===== CONNECT SSH CALLED =====');
+    console.log('[App] Profile:', profile.name);
+    console.log('[App] Host:', profile.host, 'Port:', profile.port);
+    
     terminal.clear();
     
     // Professional connection banner - simple and clean
@@ -171,7 +228,9 @@ function App() {
     setActiveProfileId(profile.id);
 
     try {
+      console.log('[App] Calling window.nomad.ssh.connect...');
       const result = await window.nomad.ssh.connect(profile, []);
+      console.log('[App] Connect result:', result);
 
       if (!result.success) {
         terminal.writeln(`\x1b[31m✖ Connection failed: ${result.error}\x1b[0m`);
@@ -596,15 +655,29 @@ function App() {
           keyType={hostKeyData.keyType}
           isChanged={hostKeyData.isChanged}
           oldFingerprint={hostKeyData.oldFingerprint}
-          onAccept={() => {
-            // TODO: Will implement in next step
+          onAccept={async () => {
+            console.log('[App] Host key accepted');
             setShowHostKeyModal(false);
             setHostKeyData(null);
+            
+            // Respond to verification request
+            const verificationId = (window as any).currentVerificationId;
+            if (verificationId) {
+              await window.nomad.ssh.respondToHostKeyVerification(verificationId, true);
+              delete (window as any).currentVerificationId;
+            }
           }}
-          onReject={() => {
-            // TODO: Will implement in next step
+          onReject={async () => {
+            console.log('[App] Host key rejected');
             setShowHostKeyModal(false);
             setHostKeyData(null);
+            
+            // Respond to verification request
+            const verificationId = (window as any).currentVerificationId;
+            if (verificationId) {
+              await window.nomad.ssh.respondToHostKeyVerification(verificationId, false);
+              delete (window as any).currentVerificationId;
+            }
           }}
         />
       )}

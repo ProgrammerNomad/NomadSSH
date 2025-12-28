@@ -251,6 +251,46 @@ function setupSessionEventForwarding(sessionManager: ReturnType<typeof getSessio
     console.log('[sshIPC] Forwarding log for session:', sessionId, 'message:', message);
     broadcastToRenderers('ssh:log', sessionId, message);
   });
+
+  // Host key verification (needs two-way communication)
+  sessionManager.on('session:hostKeyVerification', (sessionId: string, data: any, callback: (accepted: boolean) => void) => {
+    console.log('[sshIPC] Forwarding host key verification for session:', sessionId);
+    
+    // Store callback with unique ID
+    const verificationId = `verify-${sessionId}-${Date.now()}`;
+    const timeoutMs = 60000; // 60 second timeout
+    
+    // Setup one-time handler for response
+    ipcMain.handleOnce(`ssh:hostKeyVerification:${verificationId}`, async (event: any, accepted: boolean) => {
+      console.log('[sshIPC] Host key verification response:', accepted);
+      callback(accepted);
+      return { success: true };
+    });
+    
+    // Timeout fallback (auto-reject after timeout)
+    setTimeout(() => {
+      if (ipcMain.listenerCount(`ssh:hostKeyVerification:${verificationId}`) > 0) {
+        console.log('[sshIPC] Host key verification timed out, rejecting');
+        callback(false);
+        ipcMain.removeHandler(`ssh:hostKeyVerification:${verificationId}`);
+      }
+    }, timeoutMs);
+    
+    // Send verification request to renderer (only serializable data)
+    const serializableData = {
+      host: data.host,
+      port: data.port,
+      fingerprint: data.fingerprint,
+      fingerprintMD5: data.fingerprintMD5,
+      keyType: data.keyType,
+      algorithm: data.algorithm,
+      isChanged: data.isChanged,
+      oldFingerprint: data.oldFingerprint
+    };
+    
+    console.log('[sshIPC] Sending serializable data:', serializableData);
+    broadcastToRenderers('ssh:hostKeyVerification', sessionId, serializableData, verificationId);
+  });
 }
 
 /**

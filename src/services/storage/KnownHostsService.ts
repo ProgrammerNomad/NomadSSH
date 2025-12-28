@@ -1,130 +1,123 @@
-import { HostKey } from '@/types';
+import * as fs from 'fs';
+import * as path from 'path';
+import type { HostKey } from '../../types';
 
-/**
- * Service for managing known SSH host keys (server fingerprints)
- * Just storage operations - no SSH logic
- */
+interface StoredHostKey extends HostKey {
+  addedAt: string;
+  lastSeenAt: string;
+}
+
 class KnownHostsService {
-  private readonly STORAGE_KEY = 'nomadssh_known_hosts';
+  private readonly STORAGE_KEY = 'ssh_known_hosts';
+  private readonly filePath: string | null;
+  private readonly isMainProcess: boolean;
 
-  /**
-   * Get host key for specific host:port
-   */
-  async getHostKey(host: string, port: number): Promise<HostKey | null> {
-    const knownHosts = await this.getAllKnownHosts();
-    const normalizedHost = host.toLowerCase();
-    
-    return knownHosts.find(
-      (h) => h.host.toLowerCase() === normalizedHost && h.port === port
-    ) || null;
-  }
+  constructor() {
+    this.isMainProcess = typeof window === 'undefined';
 
-  /**
-   * Save a new host key
-   */
-  async saveHostKey(
-    host: string,
-    port: number,
-    fingerprint: string,
-    keyType: string,
-    algorithm: string,
-    fingerprintMD5?: string
-  ): Promise<void> {
-    const knownHosts = await this.getAllKnownHosts();
-    const normalizedHost = host.toLowerCase();
-    
-    const existingIndex = knownHosts.findIndex(
-      (h) => h.host.toLowerCase() === normalizedHost && h.port === port
-    );
+    if (this.isMainProcess) {
+      const { app } = require('electron');
+      const userDataPath = app.getPath('userData');
+      this.filePath = path.join(userDataPath, 'known_hosts.json');
 
-    const hostKey: HostKey = {
-      host: normalizedHost,
-      port,
-      fingerprint,
-      fingerprintMD5,
-      keyType,
-      algorithm,
-      addedAt: new Date().toISOString(),
-      lastSeenAt: new Date().toISOString(),
-    };
-
-    if (existingIndex >= 0) {
-      knownHosts[existingIndex] = hostKey;
+      if (!fs.existsSync(this.filePath)) {
+        fs.writeFileSync(this.filePath, JSON.stringify([]), 'utf8');
+      }
     } else {
-      knownHosts.push(hostKey);
+      this.filePath = null;
     }
-
-    await this.saveAllKnownHosts(knownHosts);
   }
 
-  /**
-   * Remove a specific host key
-   */
-  async removeHostKey(host: string, port: number): Promise<void> {
-    const knownHosts = await this.getAllKnownHosts();
-    const normalizedHost = host.toLowerCase();
-    
-    const filtered = knownHosts.filter(
-      (h) => !(h.host.toLowerCase() === normalizedHost && h.port === port)
-    );
-
-    await this.saveAllKnownHosts(filtered);
-  }
-
-  /**
-   * Get all known hosts
-   */
-  async getAllKnownHosts(): Promise<HostKey[]> {
+  private load(): StoredHostKey[] {
     try {
-      const data = localStorage.getItem(this.STORAGE_KEY);
-      if (!data) {
-        return [];
+      if (this.isMainProcess) {
+        const data = fs.readFileSync(this.filePath!, 'utf8');
+        return JSON.parse(data) as StoredHostKey[];
       }
 
-      const parsed = JSON.parse(data);
-      return Array.isArray(parsed) ? parsed : [];
+      const data = localStorage.getItem(this.STORAGE_KEY);
+      return data ? (JSON.parse(data) as StoredHostKey[]) : [];
     } catch (error) {
-      console.error('Failed to load known hosts:', error);
+      console.error('[KnownHostsService] Failed to load known hosts:', error);
       return [];
     }
   }
 
-  /**
-   * Clear all known hosts
-   */
-  async clearAllKnownHosts(): Promise<void> {
-    localStorage.removeItem(this.STORAGE_KEY);
-  }
-
-  /**
-   * Update last seen timestamp
-   */
-  async updateLastSeen(host: string, port: number): Promise<void> {
-    const knownHosts = await this.getAllKnownHosts();
-    const normalizedHost = host.toLowerCase();
-    
-    const hostKey = knownHosts.find(
-      (h) => h.host.toLowerCase() === normalizedHost && h.port === port
-    );
-
-    if (hostKey) {
-      hostKey.lastSeenAt = new Date().toISOString();
-      await this.saveAllKnownHosts(knownHosts);
-    }
-  }
-
-  /**
-   * Private helper to save all known hosts
-   */
-  private async saveAllKnownHosts(hosts: HostKey[]): Promise<void> {
+  private persist(hosts: StoredHostKey[]): void {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(hosts));
+      if (this.isMainProcess) {
+        fs.writeFileSync(this.filePath!, JSON.stringify(hosts, null, 2), 'utf8');
+      } else {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(hosts));
+      }
     } catch (error) {
-      console.error('Failed to save known hosts:', error);
-      throw new Error('Failed to save known hosts');
+      console.error('[KnownHostsService] Failed to persist known hosts:', error);
     }
+  }
+
+  getAllKnownHosts(): StoredHostKey[] {
+    return this.load();
+  }
+
+  getHostKey(host: string, port: number = 22): StoredHostKey | null {
+    const knownHosts = this.load();
+    return knownHosts.find(h => h.host === host && h.port === port) || null;
+  }
+
+  saveHostKey(
+    host: string,
+    port: number,
+    fingerprint: string,
+    fingerprintMD5: string,
+    keyType: string,
+    algorithm: string
+  ): void {
+    try {
+      const knownHosts = this.load();
+      const now = new Date().toISOString();
+      const existingIndex = knownHosts.findIndex(h => h.host === host && h.port === port);
+
+      const record: StoredHostKey = {
+        host,
+        port,
+        fingerprint,
+        fingerprintMD5,
+        keyType,
+        algorithm,
+        addedAt: existingIndex >= 0 ? knownHosts[existingIndex].addedAt : now,
+        lastSeenAt: now,
+      };
+
+      if (existingIndex >= 0) {
+        knownHosts[existingIndex] = record;
+      } else {
+        knownHosts.push(record);
+      }
+
+      this.persist(knownHosts);
+      console.log(`[KnownHostsService] Saved host key for ${host}:${port}`);
+    } catch (error) {
+      console.error('[KnownHostsService] Failed to save host key:', error);
+    }
+  }
+
+  updateLastSeen(host: string, port: number = 22): void {
+    const knownHosts = this.load();
+    const index = knownHosts.findIndex(h => h.host === host && h.port === port);
+    if (index >= 0) {
+      knownHosts[index].lastSeenAt = new Date().toISOString();
+      this.persist(knownHosts);
+    }
+  }
+
+  removeHostKey(host: string, port: number = 22): void {
+    const knownHosts = this.load().filter(h => !(h.host === host && h.port === port));
+    this.persist(knownHosts);
+  }
+
+  clearAllKnownHosts(): void {
+    this.persist([]);
   }
 }
 
-// Export singleton instance
 export const knownHostsService = new KnownHostsService();
