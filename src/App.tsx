@@ -14,6 +14,8 @@ import { ManageCategoriesModal, Category } from './components/categories';
 import { ManageKeysModal, SSHKey } from './components/keys';
 import { ProfileModal, ProfilesManager } from './components/profiles';
 import { Tab, TabStatus } from './components/layout/SessionTabs';
+import { HostKeyVerificationModal } from './components/security';
+import { knownHostsService } from './services/storage/KnownHostsService';
 
 interface Profile {
   id: string;
@@ -51,6 +53,18 @@ function App() {
   const [showKeysModal, setShowKeysModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | undefined>();
+  
+  // Host key verification modal state
+  const [showHostKeyModal, setShowHostKeyModal] = useState(false);
+  const [hostKeyData, setHostKeyData] = useState<{
+    host: string;
+    port: number;
+    fingerprint: string;
+    fingerprintMD5?: string;
+    keyType: string;
+    isChanged?: boolean;
+    oldFingerprint?: string;
+  } | null>(null);
   
   // Load data from localStorage or use defaults on first run
   const [categories, setCategories] = useState<Category[]>(() => {
@@ -568,6 +582,30 @@ function App() {
           onDeleteProfile={handleDeleteProfile}
           onAddProfile={handleAddProfile}
           onDuplicateProfile={handleDuplicateProfile}
+        />
+      )}
+
+      {/* Host Key Verification Modal */}
+      {hostKeyData && (
+        <HostKeyVerificationModal
+          isOpen={showHostKeyModal}
+          host={hostKeyData.host}
+          port={hostKeyData.port}
+          fingerprint={hostKeyData.fingerprint}
+          fingerprintMD5={hostKeyData.fingerprintMD5}
+          keyType={hostKeyData.keyType}
+          isChanged={hostKeyData.isChanged}
+          oldFingerprint={hostKeyData.oldFingerprint}
+          onAccept={() => {
+            // TODO: Will implement in next step
+            setShowHostKeyModal(false);
+            setHostKeyData(null);
+          }}
+          onReject={() => {
+            // TODO: Will implement in next step
+            setShowHostKeyModal(false);
+            setHostKeyData(null);
+          }}
         />
       )}
     </div>

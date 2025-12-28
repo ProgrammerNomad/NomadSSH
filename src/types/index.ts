@@ -68,4 +68,15 @@ export interface CommandHistory {
   sessionId: string;
 }
 
+export interface HostKey {
+  host: string;
+  port: number;
+  fingerprint: string;
+  fingerprintMD5?: string;
+  keyType: string;
+  algorithm: string;
+  addedAt: string;
+  lastSeenAt: string;
+}
+
 export * from './sftp';
