@@ -15,6 +15,7 @@ import { ManageKeysModal, SSHKey } from './components/keys';
 import { ProfileModal, ProfilesManager } from './components/profiles';
 import { Tab, TabStatus } from './components/layout/SessionTabs';
 import { HostKeyVerificationModal } from './components/security';
+import { SecuritySettings } from './components/settings';
 import { knownHostsService } from './services/storage/KnownHostsService';
 
 interface Profile {
@@ -46,6 +47,7 @@ function App() {
   // View state
   const [showDashboard, setShowDashboard] = useState(true);
   const [showProfilesManager, setShowProfilesManager] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Modal states
@@ -187,14 +189,21 @@ function App() {
     
     return () => {
       window.removeEventListener('resize', handleResize);
-      
-      // Cleanup all terminals on unmount
-      terminalsRef.current.forEach((terminal) => {
-        terminal.dispose();
-      });
-      terminalsRef.current.clear();
-      containersRef.current.clear();
-      fitAddonsRef.current.clear();
+    };
+  }, []);
+
+  // Listen for security settings event from TopBar
+  useEffect(() => {
+    const handleShowSecuritySettings = () => {
+      setShowDashboard(false);
+      setShowProfilesManager(false);
+      setShowSettings(true);
+    };
+    
+    window.addEventListener('show-security-settings', handleShowSecuritySettings);
+    
+    return () => {
+      window.removeEventListener('show-security-settings', handleShowSecuritySettings);
     };
   }, []);
 
@@ -628,6 +637,12 @@ function App() {
       />
 
       {/* Full-screen views */}
+      {showSettings && (
+        <SecuritySettings
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
       {showProfilesManager && (
         <ProfilesManager
           profiles={profiles}

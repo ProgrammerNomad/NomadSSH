@@ -32,11 +32,15 @@ class KnownHostsService {
     try {
       if (this.isMainProcess) {
         const data = fs.readFileSync(this.filePath!, 'utf8');
-        return JSON.parse(data) as StoredHostKey[];
+        const parsed = JSON.parse(data) as any[];
+        // Filter out corrupted entries (ones without proper host field)
+        return parsed.filter(h => h && typeof h.host === 'string' && h.port && h.fingerprint) as StoredHostKey[];
       }
 
       const data = localStorage.getItem(this.STORAGE_KEY);
-      return data ? (JSON.parse(data) as StoredHostKey[]) : [];
+      if (!data) return [];
+      const parsed = JSON.parse(data) as any[];
+      return parsed.filter(h => h && typeof h.host === 'string' && h.port && h.fingerprint) as StoredHostKey[];
     } catch (error) {
       console.error('[KnownHostsService] Failed to load known hosts:', error);
       return [];

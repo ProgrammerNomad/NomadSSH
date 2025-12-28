@@ -7,6 +7,7 @@
 
 import { ipcMain, IpcMainInvokeEvent } from 'electron';
 import { storageService } from '../../src/services/storage/LocalStorageService';
+import { knownHostsService } from '../../src/services/storage/KnownHostsService';
 import type { SSHProfile, SSHKey, Snippet, Tunnel } from '../../src/types';
 
 export function registerStorageHandlers() {
@@ -110,6 +111,34 @@ export function registerStorageHandlers() {
     try {
       const path = storageService.getStoragePath();
       return { success: true, data: path };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+  // Known Hosts (SSH Host Key Verification)
+  ipcMain.handle('storage:get-known-hosts', async () => {
+    try {
+      const hosts = knownHostsService.getAllKnownHosts();
+      return { success: true, data: hosts };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('storage:remove-known-host', async (event: IpcMainInvokeEvent, host: string, port: number) => {
+    try {
+      knownHostsService.removeHostKey(host, port);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('storage:clear-known-hosts', async () => {
+    try {
+      knownHostsService.clearAllKnownHosts();
+      return { success: true };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }

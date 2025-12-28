@@ -221,6 +221,9 @@ contextBridge.exposeInMainWorld('nomad', {
     getHostGroups: () => ipcRenderer.invoke('storage:get-host-groups'),
     saveHostGroups: (groups: string[]) => ipcRenderer.invoke('storage:save-host-groups', groups),
     getPath: () => ipcRenderer.invoke('storage:get-path'),
+    getKnownHosts: () => ipcRenderer.invoke('storage:get-known-hosts'),
+    removeKnownHost: (host: string, port: number) => ipcRenderer.invoke('storage:remove-known-host', host, port),
+    clearKnownHosts: () => ipcRenderer.invoke('storage:clear-known-hosts'),
   },
 
   window: {
