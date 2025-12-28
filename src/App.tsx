@@ -134,9 +134,25 @@ function App() {
   const connectSSHWithTab = async (terminal: Terminal, profile: Profile, tabId: string) => {
     terminal.clear();
     
-    terminal.writeln(`\x1b[36mConnecting to ${profile.host}:${profile.port}...\x1b[0m`);
-    terminal.writeln(`\x1b[36mUsername: ${profile.username}\x1b[0m`);
-    terminal.writeln('');
+    // Professional connection banner - simple and clean
+    const banner = [
+      '',
+      '\x1b[36m═══════════════════════════════════════════════════════════════════\x1b[0m',
+      '',
+      '                    \x1b[1;36mNomadSSH v0.0.1\x1b[0m',
+      '              \x1b[2mSecure SSH Client - Connecting...\x1b[0m',
+      '',
+      '\x1b[36m═══════════════════════════════════════════════════════════════════\x1b[0m',
+      '',
+      `\x1b[36m►\x1b[0m Host:     \x1b[1m${profile.host}:${profile.port}\x1b[0m`,
+      `\x1b[36m►\x1b[0m Username: \x1b[1m${profile.username}\x1b[0m`,
+      `\x1b[36m►\x1b[0m Profile:  \x1b[1m${profile.name}\x1b[0m`,
+      '',
+      '\x1b[33m⏳ Establishing connection...\x1b[0m',
+      ''
+    ];
+    
+    banner.forEach(line => terminal.writeln(line));
 
     setActiveProfileId(profile.id);
 
@@ -144,7 +160,8 @@ function App() {
       const result = await window.nomad.ssh.connect(profile, []);
 
       if (!result.success) {
-        terminal.writeln(`\x1b[31mConnection failed: ${result.error}\x1b[0m`);
+        terminal.writeln(`\x1b[31m✖ Connection failed: ${result.error}\x1b[0m`);
+        terminal.writeln('');
         // Update tab status to error
         setTabs(prev => prev.map(tab => 
           tab.id === tabId ? { ...tab, status: 'error' as TabStatus } : tab
@@ -153,9 +170,9 @@ function App() {
       }
 
       const sessionId = result.sessionId;
-      terminal.writeln(`\x1b[32mConnected! Session: ${sessionId}\x1b[0m`);
-      terminal.writeln('');
       
+      // Clear connection banner and show clean terminal
+      terminal.clear();
       // Update tab status to connected
       setTabs(prev => prev.map(tab => 
         tab.id === tabId ? { ...tab, status: 'connected' as TabStatus } : tab
@@ -257,11 +274,19 @@ function App() {
     const terminal = new Terminal({
       cursorBlink: true,
       fontSize: 14,
+      lineHeight: 1.2,
       fontFamily: 'Cascadia Code, Fira Code, Consolas, Monaco, monospace',
+      fontWeight: '400',
+      fontWeightBold: '700',
+      letterSpacing: 0,
+      scrollback: 10000,
       theme: {
         background: '#000000',
         foreground: '#E5E7EB',
         cursor: '#06B6D4',
+        cursorAccent: '#000000',
+        selectionBackground: '#06B6D4',
+        selectionForeground: '#000000',
         black: '#18181B',
         red: '#EF4444',
         green: '#10B981',
@@ -270,6 +295,14 @@ function App() {
         magenta: '#A855F7',
         cyan: '#06B6D4',
         white: '#E5E7EB',
+        brightBlack: '#52525B',
+        brightRed: '#F87171',
+        brightGreen: '#34D399',
+        brightYellow: '#FBBF24',
+        brightBlue: '#60A5FA',
+        brightMagenta: '#C084FC',
+        brightCyan: '#22D3EE',
+        brightWhite: '#FAFAFA',
       }
     });
     
@@ -283,8 +316,21 @@ function App() {
     
     // Open terminal
     terminal.open(container);
+    
+    // Fit terminal - use multiple attempts to ensure proper sizing
+    // First fit immediately
     fitAddon.fit();
-    terminal.focus();
+    
+    // Second fit after DOM updates (fixes initial render sizing issues)
+    requestAnimationFrame(() => {
+      fitAddon.fit();
+      terminal.focus();
+    });
+    
+    // Third fit after a small delay (catches any late layout changes)
+    setTimeout(() => {
+      fitAddon.fit();
+    }, 100);
     
     // Show welcome message
     terminal.writeln('\x1b[1;36m=== NomadSSH - Connecting ===\x1b[0m');
