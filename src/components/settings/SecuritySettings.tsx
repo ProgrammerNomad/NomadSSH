@@ -12,6 +12,8 @@ export function SecuritySettings({ onClose }: SecuritySettingsProps) {
   const [selectedHost, setSelectedHost] = useState<HostKey | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [hostToRemove, setHostToRemove] = useState<{ host: string; port: number } | null>(null);
   const [sortBy, setSortBy] = useState<'host' | 'date'>('host');
 
   useEffect(() => {
@@ -30,9 +32,16 @@ export function SecuritySettings({ onClose }: SecuritySettingsProps) {
   };
 
   const handleRemoveHost = async (host: string, port: number) => {
-    if (confirm(`Remove host key for ${host}:${port}?`)) {
-      await window.nomad.storage.removeKnownHost(host, port);
+    setHostToRemove({ host, port });
+    setShowRemoveConfirm(true);
+  };
+
+  const confirmRemoveHost = async () => {
+    if (hostToRemove) {
+      await window.nomad.storage.removeKnownHost(hostToRemove.host, hostToRemove.port);
       loadKnownHosts();
+      setShowRemoveConfirm(false);
+      setHostToRemove(null);
     }
   };
 
@@ -261,6 +270,41 @@ export function SecuritySettings({ onClose }: SecuritySettingsProps) {
         </div>
       </div>
 
+      {/* Remove Single Host Confirmation Modal */}
+      {showRemoveConfirm && hostToRemove && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-zinc-900 rounded-lg border border-zinc-700 p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <Trash2 className="w-6 h-6 text-cyan-500" />
+              <h3 className="text-lg font-semibold text-gray-200">Remove Host Key?</h3>
+            </div>
+            <p className="text-zinc-400 mb-2">
+              Remove host key for <span className="text-cyan-400 font-mono">{hostToRemove.host}:{hostToRemove.port}</span>?
+            </p>
+            <p className="text-sm text-zinc-500 mb-6">
+              You will need to verify this server again on your next connection.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowRemoveConfirm(false);
+                  setHostToRemove(null);
+                }}
+                className="px-4 py-2 bg-zinc-800 text-gray-300 rounded hover:bg-zinc-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmRemoveHost}
+                className="px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600 transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Clear All Confirmation Modal */}
       {showClearConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -275,13 +319,13 @@ export function SecuritySettings({ onClose }: SecuritySettingsProps) {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowClearConfirm(false)}
-                className="px-4 py-2 bg-zinc-800 text-gray-300 rounded hover:bg-zinc-700"
+                className="px-4 py-2 bg-zinc-800 text-gray-300 rounded hover:bg-zinc-700 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleClearAll}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
               >
                 Clear All
               </button>
