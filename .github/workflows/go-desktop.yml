@@ -1,0 +1,51 @@
+name: Go desktop
+on:
+  workflow_dispatch:
+  push:
+    paths: ['desktop/**', '.github/workflows/go-desktop.yml']
+  pull_request:
+    paths: ['desktop/**', '.github/workflows/go-desktop.yml']
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-24.04, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: desktop/go.mod
+          cache-dependency-path: desktop/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: desktop/frontend/package-lock.json
+      - name: Linux desktop dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev
+      - name: Windows build and tests
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./build.ps1
+      - name: Unix build and tests
+        if: runner.os != 'Windows'
+        run: bash build.sh
+      - name: Race detector
+        if: runner.os != 'Windows'
+        run: go test -race ./internal/... -timeout 120s
+      - name: Frontend vulnerability check
+        run: npm --prefix frontend audit --audit-level=high
+      - name: Go vulnerability check
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NomadSSH-${{ runner.os }}-${{ runner.arch }}-unsigned
+          path: desktop/build/

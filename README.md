@@ -1,262 +1,67 @@
 # NomadSSH
 
-**Secure, cloud-synced SSH client for power users.**  
-*Your servers. Your keys. Anywhere.*
+A desktop SSH client built in Go for Windows, macOS and Linux, with a Wails interface using React, TypeScript and xterm.js.
 
----
+Manage saved connections, work in SSH and local terminal tabs, transfer files over SFTP, and forward ports from one desktop workspace. Private keys stay in the operating system's secure store.
 
-NomadSSH is a professional, open-source SSH client designed for developers and operators who work across multiple machines and environments. Built with modern web technologies (Electron, React, TypeScript), it delivers a powerful terminal experience with zero-knowledge encrypted cloud sync, ensuring your SSH configurations follow you anywhere.
+**Status: 0.2.0 development build.** Windows has been built and tested locally. Native macOS/Linux acceptance, live Google OAuth, release signing and several roadmap features remain outstanding. See [release readiness](docs/RELEASE_READINESS.md) for evidence and limits.
 
----
+## Workspace
 
-## Key Highlights
+- Grouped host tree, searchable and sortable connection table, connection properties and event log.
+- Native application menus, compact toolbars, keyboard shortcuts, context actions and collapsible panels.
+- Password, private-key and SSH-agent authentication; jump hosts and host-fingerprint verification.
+- Independent terminal tabs, two-pane terminal view, Windows ConPTY and Unix PTY adapters.
+- Two-pane SFTP with filters, sorting, file metadata, recursive transfers, progress, pause/cancel and verified resume.
+- Local, remote and SOCKS5 forwarding; saved snippets; key generation and import.
+- Encrypted workspace, idle locking, encrypted backup/restore and configurable Google Drive snapshots.
 
-- **Zero-knowledge encrypted cloud sync**
-- **Modern GUI + terminal**
-- **Built-in SFTP**
-- **Advanced port forwarding**
-- **Plugin-friendly architecture**
-- **Cross-platform** (Windows, macOS, Linux)
-- **Free & open source**
+Google Drive currently stores separate encrypted revisions with explicit restore. It does not merge changes between devices. Private keys and OAuth credentials are excluded from snapshots; re-import keys on a new device.
 
----
+## Build and run
 
-## Why NomadSSH?
+Requirements: Go 1.26+, Node.js 24 and npm. Dependencies are pinned in the Go module and frontend lockfile.
 
-Most SSH clients:
+| Platform | Native dependencies | Build |
+| --- | --- | --- |
+| Windows | WebView2 runtime | `./build.ps1 -Run` |
+| macOS | Xcode command line tools | `bash build.sh` |
+| Linux | GTK 4, WebKitGTK 6, desktop Secret Service | `bash build.sh` |
 
-- Store profiles only locally
-- Lose configuration on reinstall or machine change
-- Don't offer secure, user-controlled sync
+On Ubuntu 24.04, the build packages are `libgtk-4-dev` and `libwebkitgtk-6.0-dev`. Secure storage must be available and unlocked; there is no plaintext key-storage fallback.
 
-**NomadSSH solves this problem.**
+```powershell
+# Windows: build, check and open a separate local demonstration
+./build.ps1 -Run -Demo
 
-With NomadSSH, you can:
-
-1. Install the app on a new machine
-2. Enter your master password
-3. Instantly restore all SSH profiles, keys, and layouts
-
-No manual copying. No insecure exports.
-
----
-
-## Core Features
-
-### Security
-
-- **Master password–based encryption**
-- **AES-256-GCM encrypted data**
-- **Private keys never leave your device unencrypted**
-- **Zero-knowledge cloud sync** (cloud providers cannot read your data)
-
-### SSH Client
-
-- SSH shell & exec
-- Password & key-based authentication
-- SSH agent support
-- Optional session logging
-
-### SFTP
-
-- Dual-panel file manager
-- Drag & drop upload/download
-- Resume transfers
-- Permission editor
-
-### Port Forwarding
-
-- Local port forwarding
-- Remote port forwarding
-- Dynamic forwarding (SOCKS5)
-- Named tunnel presets
-
-### Cloud Sync
-
-- Encrypted sync via Google Drive
-- Auto-sync on changes
-- Conflict detection
-- One-click restore on new devices
-
-### Productivity
-
-- Command snippets
-- Saved sessions
-- Tabbed terminals
-- Split panes
-- Session replay (planned)
-
----
-
-## Supported Platforms
-
-- **Windows** (x64)
-- **macOS** (Intel & Apple Silicon)
-- **Linux**
-
----
-
-## Design System
-
-NomadSSH features a modern **Cyber Blue + Zinc Dark** theme optimized for terminal usage and long coding sessions:
-
-### Color Palette
-- **Primary:** Cyan-500 (#06B6D4) - Modern, tech-forward, SSH/terminal aesthetic
-- **Background:** Zinc-950 (#09090B) - Deep, eye-friendly dark mode
-- **Surface:** Zinc-900 (#18181B) - Elevated panels and cards
-- **Text:** Gray-200 (#E5E7EB) - High contrast, easy to read
-
-### Design Philosophy
-- **Terminal-first:** Optimized for developers who spend hours in SSH sessions
-- **High contrast:** WCAG AA compliant for accessibility
-- **Modern tooling:** Inspired by GitHub, Vercel, Railway, Linear
-- **Smooth interactions:** Thoughtful transitions and hover states
-
-See [COLOR_MIGRATION.md](COLOR_MIGRATION.md) for the complete design system guide.
-
----
-
-## Architecture Overview
-
-| Component | Technology |
-|-----------|-----------|
-| **UI** | Electron + React + TypeScript + Tailwind CSS |
-| **Terminal Engine** | xterm.js |
-| **SSH Engine** | ssh2 |
-| **SFTP** | ssh2-sftp-client |
-| **Storage** | Local encrypted store (SQLite / JSON) |
-| **Sync** | Google Drive API |
-| **Encryption** | AES-256-GCM + PBKDF2 |
-
----
-
-## Project Structure (High Level)
-
-```
-nomadssh/
-├── app/
-│   ├── ui/
-│   ├── ssh/
-│   ├── sftp/
-│   ├── tunnels/
-│   └── plugins/
-├── sync/
-│   └── google-drive/
-├── crypto/
-├── storage/
-├── docs/
-└── scripts/
+# Run the already-built application with your real workspace
+./desktop/build/NomadSSH.exe
 ```
 
----
+The demo starts a real loopback SSH/SFTP test server with generated credentials and isolated temporary data. It does not connect to a production server. See the [user guide](docs/USER_GUIDE.md) for demo commands, workspace locations, backups and Drive configuration.
 
-## Installation
+Builds produce `desktop/build/NomadSSH.exe` on Windows, `desktop/build/NomadSSH` on Unix, and an unsigned `.app` bundle on macOS. Close the executable being rebuilt first. These are development artifacts, not signed installers.
 
-### From Releases
+## Documentation
 
-*(Coming soon)*
+- [User guide](docs/USER_GUIDE.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Desktop design research and decisions](docs/UI_DESIGN_REVIEW.md)
+- [Release readiness and remaining features](docs/RELEASE_READINESS.md)
+- [Contributing and verification](CONTRIBUTING.md)
+- [Security and credential handling](SECURITY.md)
+- [REA setup evidence](docs/REA_VERIFICATION.md)
 
-### From Source
+## Repository
 
-```bash
-git clone https://github.com/ProgrammerNomad/NomadSSH.git
-cd NomadSSH
-npm install
-npm run dev
+```text
+desktop/          Maintained Go desktop application and React interface
+docs/             Current product, architecture and release documentation
+docs/history/     Original requirements and earlier delivery records
+legacy/electron/  Preserved Electron baseline; excluded from current builds
+.github/          Native Windows, macOS and Linux CI workflow
 ```
 
----
+No automatic import from the old Electron storage is implemented. The baseline and its original README remain in `legacy/electron/` for future migration work.
 
-## Encryption & Privacy
-
-NomadSSH follows a **zero-knowledge security model**:
-
-- All sensitive data is encrypted locally
-- Encryption keys are derived from your master password
-- Cloud providers never see plaintext data
-- No telemetry, no tracking
-
----
-
-## Roadmap
-
-### Phase 1 (MVP)
-
-- SSH terminal
-- Profile management
-- Encrypted local storage
-
-### Phase 2
-
-- Google Drive sync
-- SFTP UI
-- Port forwarding UI
-
-### Phase 3
-
-- Team profiles
-- Plugin marketplace
-- CLI companion tool
-
----
-
-## Contributing
-
-**Contributions are welcome and appreciated.**
-
-You can help by:
-
-- Fixing bugs
-- Improving UI/UX
-- Adding plugins
-- Improving documentation
-
-Please read `CONTRIBUTING.md` before submitting pull requests.
-
----
-
-## License
-
-NomadSSH is licensed under the **MIT License**.
-
-See [LICENSE](LICENSE) for full details.
-
----
-
-## Technology Credits
-
-NomadSSH is built with:
-
-- **Electron** - Cross-platform desktop framework
-- **xterm.js** - Terminal emulator component
-- **ssh2** - Pure JavaScript SSH2 implementation
-- **React** - UI framework
-
----
-
-## Inspiration
-
-- **Bitvise SSH Client**
-- Modern terminal workflows
-- The need for portable, secure developer tools
-
----
-
-## Vision
-
-> *NomadSSH aims to be the last SSH client you ever need —  
-> no matter where you work from.*
-
----
-
-## Support the Project
-
-If you find NomadSSH useful:
-
-- Star the repository
-- Share feedback
-- Contribute code or ideas
-
----
-
-**Made with ❤️ by a Nomad Programmer**
+Licensed under [MIT](LICENSE). Dependency licenses remain applicable.
